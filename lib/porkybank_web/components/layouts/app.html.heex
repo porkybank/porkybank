@@ -1,0 +1,174 @@
+<div class="max-w-lg mx-auto min-h-screen flex flex-col">
+  <header class="px-4 sm:px-6 lg:px-8">
+    <div class="flex items-center justify-between border-b border-zinc-100 py-3 text-sm">
+      <div class="flex items-center gap-4">
+        <.link navigate={~p"/overview"}>
+          <.badge size={:lg} color="pink">🐷 Porkybank</.badge>
+        </.link>
+      </div>
+      <div class="flex items-center gap-4 font-semibold leading-6">
+        <.link
+          :if={!assigns[:current_user] && assigns[:page] != :login}
+          href={~p"/users/log_in"}
+          class="text-[0.8125rem] leading-6 text-zinc-900 font-semibold hover:text-zinc-700"
+        >
+          Log in
+        </.link>
+        <.link
+          :if={!assigns[:current_user] && assigns[:page] == :login}
+          class="rounded-lg bg-zinc-100 px-2 py-1 hover:bg-zinc-200/80"
+          phx-click={show_modal(%JS{}, "quote")}
+        >
+          Made with <span class="text-red-500">♥</span>
+        </.link>
+        <.link
+          :if={assigns[:current_user] && assigns[:live_action] != :example}
+          href={~p"/users/settings"}
+          class="text-[0.8125rem] leading-6 text-zinc-900 font-semibold hover:text-zinc-700"
+        >
+          <.icon name="hero-cog-6-tooth" class="w-5 h-5 mb-0.5" />
+        </.link>
+        <.link
+          :if={assigns[:current_user] && assigns[:live_action] != :example}
+          href={~p"/users/log_out"}
+          method="delete"
+          class="text-[0.8125rem] leading-6 text-zinc-900 font-semibold hover:text-zinc-700"
+        >
+          Log out
+        </.link>
+        <.link
+          :if={assigns[:current_user] && assigns[:live_action] == :example}
+          href={~p"/users/register"}
+          class="text-[0.8125rem] leading-6 text-zinc-900 font-semibold hover:text-zinc-700"
+        >
+          Create an account
+        </.link>
+      </div>
+    </div>
+  </header>
+  <main class="px-4 py-6 sm:px-6 lg:px-8 flex-1">
+    <div class="mx-auto max-w-2xl">
+      <.flash_group flash={@flash} />
+      <%= @inner_content %>
+    </div>
+  </main>
+  <.modal id="quote" size={:md}>
+    <quote class="text-lg text-zinc-900 italic block">
+      Do not save what is left after spending, but spend what is left after saving.
+    </quote>
+    <div class="text-sm text-zinc-500 mt-4">
+      - Warren Buffett
+    </div>
+  </.modal>
+  <footer
+    :if={assigns[:current_user] && assigns[:today]}
+    class="sticky bottom-0 px-4 sm:px-6 lg:px-8 bg-white z-20"
+  >
+    <div class="flex items-center justify-between border-t border-zinc-100 py-2">
+      <% real_today = Timex.now() %>
+      <% first_day_of_next_month = Timex.shift(Timex.beginning_of_month(@today), months: 1) %>
+      <% first_day_of_current_month = Timex.beginning_of_month(@today) %>
+      <% last_day_of_previous_month = Timex.shift(first_day_of_current_month, days: -1) %>
+      <% is_on_prev_date? = Timex.before?(@today, real_today) %>
+      <% first_month_of_user = @current_user.inserted_at |> Timex.beginning_of_month() %>
+      <% disable_next_month =
+        Date.to_string(first_day_of_current_month) == Date.to_string(first_month_of_user) %>
+      <% next_month_is_current_month? =
+        Date.to_string(first_day_of_next_month) ==
+          Date.to_string(Timex.beginning_of_month(real_today)) %>
+      <% url_params =
+        PorkybankWeb.Utils.get_url_params(%{date: Date.to_string(@today)}) %>
+      <.link
+        :if={is_on_prev_date?}
+        class="font-bold text-sm text-zinc-400 hover:text-blue-600 transition-colors"
+        navigate={
+          ~p"/#{@page}?#{PorkybankWeb.Utils.get_url_params(%{date: if(!next_month_is_current_month?, do: Date.to_string(first_day_of_next_month))})}"
+        }
+      >
+        <.icon name="hero-arrow-left-solid" class="font-bold h-2 w-2" />
+        <%= Timex.month_shortname(first_day_of_next_month.month) %> <%= first_day_of_next_month.year %>
+      </.link>
+      <span class="font-bold text-sm text-blue-600">
+        <%= Timex.month_shortname(@today.month) %> <%= @today.year %>
+      </span>
+
+      <.link
+        class={[
+          "font-bold text-sm text-zinc-400 hover:text-blue-600 transition-colors"
+        ]}
+        navigate={
+          ~p"/#{@page}?#{PorkybankWeb.Utils.get_url_params(%{date: Date.to_string(last_day_of_previous_month)})}"
+        }
+      >
+        <%= Timex.month_shortname(last_day_of_previous_month.month) %> <%= last_day_of_previous_month.year %>
+        <.icon name="hero-arrow-right-solid" class="font-bold h-2 w-2" />
+      </.link>
+    </div>
+    <div class="flex items-center justify-between border-t border-zinc-100 py-2 sm:py-4 text-sm">
+      <.link
+        class="flex"
+        navigate={
+          if assigns[:live_action] == :example,
+            do: ~p"/example/overview",
+            else:
+              ~p"/overview?#{PorkybankWeb.Utils.get_url_params(%{date: if(is_on_prev_date?, do: Date.to_string(@today))})}"
+        }
+      >
+        <.badge size={:lg} color={if @selected_page == :overview, do: "blue"}>
+          <.icon name="hero-home-solid" class="w-5 h-5" />
+          <span class="ml-1 sr-only">Overview</span>
+        </.badge>
+      </.link>
+      <.dropdown_menu
+        :if={assigns[:live_action] != :example}
+        id="transaction_type_dropdown"
+        position={:top_center}
+      >
+        <:action :let={attrs}>
+          <div phx-click={attrs.toggle} class="cursor-pointer">
+            <.badge
+              color="dark_green"
+              size={:lg}
+              class="flex !p-2.5 relative justify-center items-center !rounded-full"
+            >
+              <div class="h-full w-full bg-transparent absolute top-0 left-0 rounded-full border-2 border-green-500">
+              </div>
+              <img src={~p"/images/plus-large.svg"} />
+              <%!-- <.icon name="hero-plus" class="font-extrabold" /> --%>
+            </.badge>
+          </div>
+        </:action>
+        <:item>
+          <div class="flex flex-col">
+            <.link
+              navigate={~p"/transactions/new?#{url_params}"}
+              class="px-4 py-2 hover:bg-zinc-100 whitespace-nowrap border-b border-zinc-200"
+            >
+              1️⃣ One-time transaction
+            </.link>
+            <.link
+              navigate={~p"/overview/expense?#{url_params}"}
+              class="px-4 py-2 hover:bg-zinc-100 whitespace-nowrap"
+            >
+              🔁 Recurring monthly expense
+            </.link>
+          </div>
+        </:item>
+      </.dropdown_menu>
+      <.link
+        class="flex justify-end"
+        navigate={
+          if assigns[:live_action] == :example,
+            do: ~p"/example/transactions",
+            else:
+              ~p"/transactions?#{PorkybankWeb.Utils.get_url_params(%{date: if(is_on_prev_date?, do: Date.to_string(@today))})}"
+        }
+      >
+        <.badge size={:lg} color={if @selected_page == :transactions, do: "blue"}>
+          <.icon name="hero-queue-list-solid" class="w-5 h-5" />
+          <span class="ml-1 sr-only">Transactions</span>
+        </.badge>
+      </.link>
+    </div>
+  </footer>
+</div>

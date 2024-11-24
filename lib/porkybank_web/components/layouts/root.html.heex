@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en" style="scrollbar-gutter: stable;">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="/images/pig.png" type="image/png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="csrf-token" content={get_csrf_token()} />
+    <.live_title>
+      <%= assigns[:page_title] || "Porkybank" %>
+    </.live_title>
+    <link phx-track-static rel="stylesheet" href={~p"/assets/app.css"} />
+    <script defer phx-track-static type="text/javascript" src={~p"/assets/app.js"}>
+    </script>
+    <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js">
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/emoji-mart@latest/dist/browser.js">
+    </script>
+    <!--Start of Tawk.to Script-->
+    <script
+      :if={
+        (assigns[:current_user] && !PorkybankWeb.UserAuth.is_admin?(assigns[:current_user])) ||
+          !assigns[:current_user]
+      }
+      type="text/javascript"
+    >
+      if (window.innerWidth >= 768) {
+        var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
+        (function(){
+        var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
+        s1.async=true;
+        s1.src='https://embed.tawk.to/65a6b23b8d261e1b5f5403fa/1hk9ige21';
+        s1.charset='UTF-8';
+        s1.setAttribute('crossorigin','*');
+        s0.parentNode.insertBefore(s1,s0);
+        })();
+      }
+    </script>
+    <!--End of Tawk.to Script-->
+  </head>
+  <body class="bg-white antialiased">
+    <%= @inner_content %>
+  </body>
+</html>

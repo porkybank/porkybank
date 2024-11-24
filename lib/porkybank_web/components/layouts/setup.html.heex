@@ -1,0 +1,31 @@
+<div class="max-w-lg mx-auto min-h-screen flex flex-col h-screen">
+  <header class="px-4 sm:px-6 lg:px-8">
+    <div class="flex items-center justify-between border-b border-zinc-100 py-3 text-sm">
+      <div class="flex items-center gap-4">
+        <.link navigate={~p"/overview"}>
+          <.badge size={:lg} color="pink">🐷 Porkybank</.badge>
+        </.link>
+      </div>
+      <div class="flex items-center gap-4 font-semibold leading-6">
+        <.link
+          :if={!assigns[:current_user]}
+          href={~p"/users/log_in"}
+          class="text-[0.8125rem] leading-6 text-zinc-900 font-semibold hover:text-zinc-700"
+        >
+          Log in
+        </.link>
+        <.link
+          :if={assigns[:current_user]}
+          href={~p"/users/log_out"}
+          method="delete"
+          class="text-[0.8125rem] leading-6 text-zinc-900 font-semibold hover:text-zinc-700"
+        >
+          Log out
+        </.link>
+      </div>
+    </div>
+  </header>
+  <div class="h-full flex-1 items-center px-4 py-6 sm:px-6 lg:px-8">
+    <%= @inner_content %>
+  </div>
+</div>

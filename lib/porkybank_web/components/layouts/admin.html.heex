@@ -1,0 +1,41 @@
+<%!-- a grid with two colums, colum on the left is a col of buttons --%>
+<%!-- col on the right is the main content --%>
+<%!-- i want it to be centered on the screen with padding above and below --%>
+<%!-- use tailwind class names --%>
+
+<div class="flex flex-col items-center py-4">
+  <.header>Admin panel</.header>
+  <div class="grid grid-cols-4 gap-4">
+    <div class="col-span-1 flex flex-col gap-2">
+      <.button
+        class="sm:min-w-[10rem]"
+        variant={if @page_selected != :users, do: :shadow, else: :primary}
+      >
+        Users
+      </.button>
+      <.link navigate={~p"/admin/categories"}>
+        <.button
+          class="sm:min-w-[10rem]"
+          variant={if @page_selected != :categories, do: :shadow, else: :primary}
+        >
+          Categories
+        </.button>
+      </.link>
+      <.link navigate={~p"/admin/custom-pfcs"}>
+        <.button
+          class="sm:min-w-[10rem]"
+          variant={if @page_selected != :custom_pfcs, do: :shadow, else: :primary}
+        >
+          Custom Pfcs
+        </.button>
+      </.link>
+      <.link class="text-sm underline text-blue-600 font-semibold" navigate={~p"/overview"}>
+        <.icon class="w-3 h-3" name="hero-arrow-left" />Back to site
+      </.link>
+    </div>
+    <div class="col-span-3 border-l border-zinc-200 pl-4">
+      <.flash_group flash={@flash} />
+      <%= @inner_content %>
+    </div>
+  </div>
+</div>
