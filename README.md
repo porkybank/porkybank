@@ -6,7 +6,7 @@ Porkybank is a personal finance app to help you track your daily budget using th
 
 ## Demo
 
-https://porkybank.io/example/overview
+<https://porkybank.io/example/overview>
 
 ## Setup
 
@@ -24,6 +24,16 @@ Install JS dependencies:
 
 * `cd assets`
 * `npm i`
+
+Setup enviornment variables:
+
+``` bash
+export PLAID_CLIENT_ID=
+export PLAID_SECRET=
+
+export OPENAI_API_KEY=
+export OPENAI_ORGANIZATION_ID=
+```
 
 To start your Phoenix server:
 

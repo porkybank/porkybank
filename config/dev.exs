@@ -78,6 +78,14 @@ config :phoenix, :plug_init_mode, :runtime
 # Disable swoosh api client as it is only required for production adapters.
 config :swoosh, :api_client, false
 
-config :porkybank, Porkybank.PlaidClient, base_url: "https://sandbox.plaid.com", env: "sandbox"
+config :porkybank, Porkybank.PlaidClient,
+  base_url: "https://sandbox.plaid.com",
+  env: "sandbox",
+  client_id: System.get_env("PLAID_CLIENT_ID"),
+  secret: System.get_env("PLAID_SECRET")
+
+config :porkybank, Porkybank.OpenAI,
+  api_key: System.get_env("OPENAI_API_KEY"),
+  organization_key: System.get_env("OPENAI_ORGANIZATION_ID")
 
 config :porkybank, :default_category_id, "74ef7546-04c0-4ca4-a6b4-51857b17c64b"

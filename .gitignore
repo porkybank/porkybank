@@ -35,6 +35,7 @@ porkybank-*.tar
 npm-debug.log
 /assets/node_modules/
 
+.env
 
 # LVN
 /native/swiftui/Porkybank.xcodeproj/project.xcworkspace/xcuserdata/
