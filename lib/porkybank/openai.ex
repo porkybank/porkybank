@@ -8,16 +8,24 @@ defmodule Porkybank.OpenAI do
   plug Tesla.Middleware.BaseUrl, "https://api.openai.com/v1"
   plug Tesla.Middleware.JSON
 
-  plug Tesla.Middleware.Headers, [
-    {"Authorization",
-     "Bearer #{Application.compile_env!(:porkybank, Porkybank.OpenAI, :api_key)}"},
-    {"Content-Type", "application/json"}
-  ]
+  def headers do
+    [
+      {"Authorization",
+       "Bearer #{Keyword.get(Application.get_env(:porkybank, __MODULE__), :api_key)}"},
+      {"Content-Type", "application/json"}
+    ]
+  end
+
+  def match_new_transactions_with_recurring_transactions(_user, [], _today) do
+    {:ok, []}
+  end
 
   def match_new_transactions_with_recurring_transactions(user, transaction_ids, today) do
     Logger.info(
       "OpenAI: Matching new transactions with recurring transactions for user #{user.id}"
     )
+
+    dbg(transaction_ids)
 
     monthly_expenses = Porkybank.Expenses.list_expenses(user, today)
 
@@ -31,14 +39,18 @@ defmodule Porkybank.OpenAI do
 
     Logger.info("OpenAI: User prompt: #{inspect(user_prompt)}")
 
-    case post("/chat/completions", %{
-           model: "gpt-4o-mini",
-           response_format: %{type: "json_object"},
-           messages: [
-             %{role: "system", content: system_prompt},
-             %{role: "user", content: user_prompt}
-           ]
-         }) do
+    case post(
+           "/chat/completions",
+           %{
+             model: "gpt-4o-mini",
+             response_format: %{type: "json_object"},
+             messages: [
+               %{role: "system", content: system_prompt},
+               %{role: "user", content: user_prompt}
+             ]
+           },
+           headers: headers()
+         ) do
       {:ok, resp = %{body: %{"choices" => choices}}} ->
         first_choice = List.first(choices)
         matches = first_choice["message"]["content"]
