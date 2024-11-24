@@ -4,6 +4,10 @@ Porkybank is a personal finance app to help you track your daily budget using th
 
 > (💰 Income - 🍽️ Expenses) / 📅 Days = 💸 Cash
 
+## Demo
+
+https://porkybank.io/example/overview
+
 ## Setup
 
 Install and start postgres:
