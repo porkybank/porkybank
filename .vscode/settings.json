@@ -3,6 +3,4 @@
         "editor.formatOnSave": true,
         "editor.defaultFormatter": "JakeBecker.elixir-ls"
     },
-    "elixirLS.fetchDeps": false,
-    "elixirLS.suggestSpecs": false
 }

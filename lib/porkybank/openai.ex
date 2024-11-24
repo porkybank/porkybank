@@ -25,8 +25,6 @@ defmodule Porkybank.OpenAI do
       "OpenAI: Matching new transactions with recurring transactions for user #{user.id}"
     )
 
-    dbg(transaction_ids)
-
     monthly_expenses = Porkybank.Expenses.list_expenses(user, today)
 
     new_transactions =
