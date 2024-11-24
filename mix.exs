@@ -5,7 +5,7 @@ defmodule Porkybank.MixProject do
     [
       app: :porkybank,
       version: "0.1.0",
-      elixir: "~> 1.14",
+      elixir: "~> 1.17",
       elixirc_paths: elixirc_paths(Mix.env()),
       config_path: "config/config.exs",
       start_permanent: Mix.env() == :prod,
