@@ -15,7 +15,7 @@ defmodule Porkybank.PlaidClient do
     }
   end
 
-  def get_plaid_transactions(user, opts \\ []) do
+  def get_plaid_transactions(%Porkybank.Accounts.User{} = user, opts \\ []) do
     access_tokens = get_access_tokens(user)
     today = Keyword.get(opts, :date) || Date.utc_today()
     first_day_of_month = today |> Date.beginning_of_month() |> Date.to_iso8601()
