@@ -1,8 +1,14 @@
-![Porkybank](priv/static/images/porkybank.png)
+<p align="center">
+  <img height="100" src="priv/static/images/porkybank.png">
+</p>
 
-Porkybank is a personal finance app to help you track your daily budget using the simple formula:
+<p align="center">
+  Porkybank is a personal finance app to help you track your daily budget using the simple formula:
+</p>
 
-> (💰 Income - 🍽️ Expenses) / 📅 Days = 💸 Cash
+<p align="center">
+  (💰 Income - 🍽️ Expenses) / 📅 Days = 💸 Cash
+</p>
 
 ## Demo
 
