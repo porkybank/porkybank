@@ -1,4 +1,4 @@
-# 🐷 Porkybank
+![Porkybank](priv/static/images/porkybank.png)
 
 Porkybank is a personal finance app to help you track your daily budget using the simple formula:
 

@@ -6,7 +6,7 @@ defmodule PorkybankWeb.LandingPageLive do
     <div class="flex flex-col flex-1 justify-between">
       <div>
         <.header class="text-center">
-          Welcome to Porkybank 🐷
+          Welcome to Porkybank <img class="w-5 inline" src={~p"/images/porkybank.png"} />
           <:subtitle>
             A simple, powerful, and secure budgeting app for individuals and families.
           </:subtitle>

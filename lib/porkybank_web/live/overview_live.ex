@@ -14,7 +14,7 @@ defmodule PorkybankWeb.OverviewLive do
         </Text>
       </VStack>
       <Spacer />
-      <Text class="size-32">🐷</Text>
+      <Text class="size-32"><img class="w-4 mr-1" src={~p"/images/porkybank.png"} /></Text>
     </HStack>
     <VStack class="px-12">
       <Divider />
