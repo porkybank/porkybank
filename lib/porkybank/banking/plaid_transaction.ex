@@ -72,8 +72,6 @@ defmodule Porkybank.Banking.PlaidTransaction do
     |> validate_required([
       :account_id,
       :amount,
-      :category,
-      :category_id,
       :counterparties,
       :date,
       :iso_currency_code,
