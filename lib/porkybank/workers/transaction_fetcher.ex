@@ -104,6 +104,13 @@ defmodule Porkybank.Workers.TransactionFetcher do
     rescue
       error ->
         Logger.error("Error fetching transactions for user #{user_id}: #{inspect(error)}")
+
+        Logger.info("Retrying in 20 minutes")
+
+        args
+        |> new(schedule_in: 20 * 60)
+        |> Oban.insert!()
+
         raise error
     end
   end
@@ -118,6 +125,27 @@ defmodule Porkybank.Workers.TransactionFetcher do
     |> Oban.cancel_all_jobs()
 
     Oban.insert(Porkybank.Workers.TransactionFetcher.new(%{user_id: user_id}))
+  end
+
+  def resync_all_users() do
+    try do
+      Oban.Job
+      |> where([j], j.worker == "Porkybank.Workers.TransactionFetcher")
+      |> Oban.cancel_all_jobs()
+
+      Porkybank.Banking.PlaidAccount
+      |> select([a], a.user_id)
+      |> Porkybank.Repo.all()
+      |> Enum.each(fn account ->
+        Oban.insert(Porkybank.Workers.TransactionFetcher.new(%{user_id: account}))
+      end)
+
+      :ok
+    rescue
+      error ->
+        Logger.error("Error resyncing all users: #{inspect(error)}")
+        raise error
+    end
   end
 
   def maybe_confirm_pending_transaction(%{

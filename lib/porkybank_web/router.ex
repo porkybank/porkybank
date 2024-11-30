@@ -77,6 +77,7 @@ defmodule PorkybankWeb.Router do
 
     live "/categories", Admin.AdminCategoryLive
     live "/custom-pfcs", Admin.AdminCustomPfcLive
+    live "/plaid-accounts", Admin.AdminPlaidAccountLive
   end
 
   # Other scopes may use custom stacks.

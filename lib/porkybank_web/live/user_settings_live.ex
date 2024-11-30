@@ -498,6 +498,12 @@ defmodule PorkybankWeb.UserSettingsLive do
     {:noreply, put_flash(socket, :info, "Bank accounts resyncing.")}
   end
 
+  def handle_event("resync_all_users", _params, socket) do
+    Porkybank.Workers.TransactionFetcher.resync_all_users()
+
+    {:noreply, put_flash(socket, :info, "All bank accounts resyncing.")}
+  end
+
   def handle_event("delete", %{"id" => id}, socket) do
     category = Porkybank.Repo.get!(Porkybank.Banking.Category, id)
 
