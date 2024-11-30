@@ -890,15 +890,15 @@ defmodule PorkybankWeb.CoreComponents do
   defp badge_class(assigns) do
     size_class =
       case assigns.size do
-        :xs -> "text-2xs px-1"
-        :md -> "text-xs px-2 py-1"
-        :lg -> "text-sm px-3 py-1.5"
-        :xl -> "text-base px-4 py-2"
-        _ -> "text-xs px-2 py-1"
+        :xs -> "text-2xs px-1 ring-1"
+        :md -> "text-xs px-2 py-1 ring-1"
+        :lg -> "text-sm px-3 py-1.5 ring-2"
+        :xl -> "text-base px-4 py-2 ring-3"
+        _ -> "text-xs px-2 py-1 ring-2"
       end
 
     base_class =
-      "inline-flex items-center rounded-md font-medium ring-2 ring-inset"
+      "inline-flex items-center rounded-md font-medium ring-inset"
 
     color_class = badge_color_class(assigns.color)
 

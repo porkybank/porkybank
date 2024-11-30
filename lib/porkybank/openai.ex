@@ -49,12 +49,12 @@ defmodule Porkybank.OpenAI do
            },
            headers: headers()
          ) do
-      {:ok, resp = %{body: %{"choices" => choices}}} ->
+      {:ok, _resp = %{body: %{"choices" => choices}}} ->
         first_choice = List.first(choices)
         matches = first_choice["message"]["content"]
         Logger.info("OpenAI response (matches): #{inspect(matches)}")
 
-        resp
+        Jason.decode!(matches)
 
       {:ok, resp} ->
         Logger.info("OpenAI error: #{inspect(resp)}")
