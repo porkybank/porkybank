@@ -92,9 +92,9 @@ defmodule PorkybankWeb.TransactionsLive do
                   size={:xs}
                 >
                   <%= if ignored_reason(transaction, @ignored_transactions) == "AI matched" do %>
-                    ✨ Ignored automatically
+                    🤖 Ignored
                   <% else %>
-                    Ignored manually
+                    Ignored
                   <% end %>
                 </.badge>
                 <.badge :if={transaction.pending} color="blue" size={:xs}>
