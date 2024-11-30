@@ -39,7 +39,7 @@ defmodule PorkybankWeb.TransactionsLive do
           <.row_header>
             <div class="flex w-full justify-between items-center">
               <%= date %><span><%= transactions |> Enum.reduce(0, fn transaction, acc ->
-                case transaction.transaction_id in @ignored_transactions do
+                case transaction.transaction_id in @ignored_transactions_ids do
                 true -> acc
                 false ->
                   case transaction.amount do
@@ -54,18 +54,19 @@ defmodule PorkybankWeb.TransactionsLive do
             <.row
               :for={transaction <- transactions}
               remove_message={
-                if transaction.transaction_id in @ignored_transactions,
+                if transaction.transaction_id in @ignored_transactions_ids,
                   do: "Are you sure you want to include this transaction?",
                   else: "Are you sure you want to ignore this transaction?"
               }
               on_remove={
-                if transaction.transaction_id not in @ignored_transactions and
+                if transaction.transaction_id not in @ignored_transactions_ids and
                      @live_action != :example,
                    do: "exclude"
               }
               on_add={
-                if transaction.transaction_id in @ignored_transactions and @live_action != :example,
-                  do: "include"
+                if transaction.transaction_id in @ignored_transactions_ids and
+                     @live_action != :example,
+                   do: "include"
               }
               id={transaction.transaction_id}
               phx-value-id={transaction.transaction_id}
@@ -77,14 +78,24 @@ defmodule PorkybankWeb.TransactionsLive do
                 <.category_emoji :if={pfc} category={pfc} />
               </:icon>
               <:title>
-                <span class={if is_ignored?(transaction, @ignored_transactions), do: "line-through"}>
+                <span class={
+                  if is_ignored?(transaction, @ignored_transactions_ids), do: "line-through"
+                }>
                   <%= transaction.name %>
                 </span>
               </:title>
               <:subtitle>
                 <%= transaction.date %>
-                <.badge :if={is_ignored?(transaction, @ignored_transactions)} color="red" size={:xs}>
-                  Ignored
+                <.badge
+                  :if={is_ignored?(transaction, @ignored_transactions_ids)}
+                  color="red"
+                  size={:xs}
+                >
+                  <%= if ignored_reason(transaction, @ignored_transactions) == "AI matched" do %>
+                    ✨ Ignored automatically
+                  <% else %>
+                    Ignored manually
+                  <% end %>
                 </.badge>
                 <.badge :if={transaction.pending} color="blue" size={:xs}>
                   Pending
@@ -92,7 +103,7 @@ defmodule PorkybankWeb.TransactionsLive do
               </:subtitle>
               <:value>
                 <span class={[
-                  if(is_ignored?(transaction, @ignored_transactions), do: "line-through")
+                  if(is_ignored?(transaction, @ignored_transactions_ids), do: "line-through")
                 ]}>
                   <%= Number.Currency.number_to_currency(transaction.amount, unit: @current_user.unit) %>
                 </span>
@@ -221,7 +232,7 @@ defmodule PorkybankWeb.TransactionsLive do
   end
 
   def handle_event("swipe_left", %{"id" => id}, socket) do
-    if id in socket.assigns.ignored_transactions do
+    if id in socket.assigns.ignored_transactions_ids do
       Porkybank.IgnoredTransactions.delete(id, socket.assigns.current_user)
       {:noreply, get_transactions(socket) |> push_event("chart-updated", %{})}
     else
@@ -270,6 +281,7 @@ defmodule PorkybankWeb.TransactionsLive do
 
   defp put_transactions(
          %{
+           ignored_transactions_ids: ignored_transactions_ids,
            ignored_transactions: ignored_transactions,
            transactions: transactions,
            total_spent: total_spent,
@@ -287,6 +299,7 @@ defmodule PorkybankWeb.TransactionsLive do
 
     assign(socket, %{
       transactions_grouped_by_date: transactions_grouped_by_date,
+      ignored_transactions_ids: ignored_transactions_ids,
       ignored_transactions: ignored_transactions,
       transactions_loaded: true,
       transactions: transactions,
@@ -297,8 +310,15 @@ defmodule PorkybankWeb.TransactionsLive do
     })
   end
 
-  defp is_ignored?(transaction, ignored_transactions) do
-    transaction.transaction_id in ignored_transactions || transaction.amount < 0
+  defp is_ignored?(transaction, ignored_transactions_ids) do
+    transaction.transaction_id in ignored_transactions_ids || transaction.amount < 0
+  end
+
+  defp ignored_reason(transaction, ignored_transactions) do
+    case Enum.find(ignored_transactions, &(&1.transaction_id == transaction.transaction_id)) do
+      nil -> nil
+      %Porkybank.Banking.IgnoredTransaction{reason: reason} -> reason
+    end
   end
 
   defp get_cat(transaction, categories) do
@@ -315,7 +335,7 @@ defmodule PorkybankWeb.TransactionsLive do
       Enum.reduce(socket.assigns.transactions_grouped_by_date, [], fn {_date, transactions},
                                                                       acc ->
         Enum.reduce(transactions, acc, fn transaction, acc ->
-          if transaction.transaction_id in socket.assigns.ignored_transactions do
+          if transaction.transaction_id in socket.assigns.ignored_transactions_ids do
             acc
           else
             amount = transaction.amount

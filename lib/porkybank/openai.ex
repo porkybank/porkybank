@@ -17,7 +17,7 @@ defmodule Porkybank.OpenAI do
   end
 
   def match_new_transactions_with_recurring_transactions(_user, [], _today) do
-    {:ok, []}
+    %{}
   end
 
   def match_new_transactions_with_recurring_transactions(user, transaction_ids, today) do

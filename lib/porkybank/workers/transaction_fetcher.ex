@@ -57,21 +57,33 @@ defmodule Porkybank.Workers.TransactionFetcher do
           end
         end)
 
-      matched_transactions =
-        Porkybank.OpenAI.match_new_transactions_with_recurring_transactions(
-          user,
-          new_transactions_ids,
-          today
-        )
+      case Porkybank.OpenAI.match_new_transactions_with_recurring_transactions(
+             user,
+             new_transactions_ids,
+             today
+           ) do
+        %{"matching_transactions" => matching_transactions} ->
+          Enum.each(matching_transactions, fn transaction ->
+            %{
+              "transaction_id" => transaction_id,
+              "confidence_score" => confidence_score,
+              "matched_expense_id" => matched_expense_id
+            } = transaction
 
-      Enum.each(matched_transactions, fn {transaction_id, confidence_score, matched_expense_id} ->
-        if confidence_score == "HIGH" do
-          IgnoredTransactions.create(transaction_id, user,
-            reason: "AI matched",
-            matched_expense_id: matched_expense_id
-          )
-        end
-      end)
+            if confidence_score == "HIGH" do
+              IgnoredTransactions.create(transaction_id, user,
+                reason: "AI matched",
+                matched_expense_id: matched_expense_id
+              )
+            end
+          end)
+
+        %{} ->
+          Logger.info("No matching transactions found")
+
+        _ ->
+          Logger.error("Error matching new transactions with recurring transactions")
+      end
 
       Porkybank.Repo.update_all(
         PlaidAccount |> where(user_id: ^user.id),

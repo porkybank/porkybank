@@ -91,7 +91,6 @@ defmodule Porkybank.PlaidClient do
       Porkybank.Banking.IgnoredTransaction
       |> where(user_id: ^user.id)
       |> Porkybank.Repo.all()
-      |> Enum.map(fn ignored_transaction -> ignored_transaction.transaction_id end)
 
     transactions =
       if !user_has_transaction_in_month? do
@@ -155,15 +154,18 @@ defmodule Porkybank.PlaidClient do
   end
 
   defp calculate_totals(transactions, ignored_transactions, day) do
+    ignored_transactions_ids = Enum.map(ignored_transactions, & &1.transaction_id)
+
     total_spent =
       transactions
       |> Enum.filter(fn transaction ->
-        transaction.transaction_id not in ignored_transactions
+        transaction.transaction_id not in ignored_transactions_ids
       end)
       |> Enum.reduce(0.0, fn transaction, total_spent -> transaction.amount + total_spent end)
 
     {:ok,
      %{
+       ignored_transactions_ids: ignored_transactions_ids,
        ignored_transactions: ignored_transactions,
        transactions: transactions || [],
        total_spent: total_spent,
