@@ -83,6 +83,11 @@ defmodule PorkybankWeb.ExpenseFormComponent do
             </.dropdown_menu>
           </div>
         </div>
+        <.input
+          description="Optional alias to match this expense with incoming transactions. For example, set to 'Venmo' if your rent payment appears as 'Venmo' in bank transactions."
+          label="Expense Alias"
+          field={f[:expense_alias]}
+        />
         <.input field={f[:recurring_period]} type="hidden" />
         <.button type="submit">Save</.button>
       </.simple_form>
@@ -105,8 +110,6 @@ defmodule PorkybankWeb.ExpenseFormComponent do
           where: c.user_id == ^assigns.current_user.id or is_nil(c.user_id),
           order_by: [asc: c.name]
       )
-
-    dbg(categories)
 
     {:ok,
      assign(socket,

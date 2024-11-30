@@ -10,6 +10,7 @@ defmodule Porkybank.Banking.Expense do
     field :date, :date
     field :recurring, :boolean, default: true
     field :recurring_period, :string, default: "monthly"
+    field :expense_alias, :string
 
     belongs_to :category, Porkybank.Banking.Category
     belongs_to :user, Porkybank.Accounts.User, type: :integer
@@ -20,7 +21,15 @@ defmodule Porkybank.Banking.Expense do
   @doc false
   def changeset(expense, attrs) do
     expense
-    |> cast(attrs, [:amount, :description, :date, :recurring, :recurring_period, :category_id])
+    |> cast(attrs, [
+      :amount,
+      :description,
+      :date,
+      :recurring,
+      :recurring_period,
+      :category_id,
+      :expense_alias
+    ])
     |> validate_required([
       :amount,
       :description,

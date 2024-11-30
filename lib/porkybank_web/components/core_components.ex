@@ -377,6 +377,7 @@ defmodule PorkybankWeb.CoreComponents do
   attr(:id, :any, default: nil)
   attr(:name, :any)
   attr(:label, :string, default: nil)
+  attr(:description, :string, default: nil)
   attr(:value, :any)
   attr(:class, :any, default: nil)
 
@@ -480,6 +481,7 @@ defmodule PorkybankWeb.CoreComponents do
     ~H"""
     <div phx-feedback-for={@name}>
       <.label for={@id}><%= @label %></.label>
+      <.description :if={@description}><%= @description %></.description>
       <input
         type={@type}
         name={@name}

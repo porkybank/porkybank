@@ -71,6 +71,7 @@ defmodule Porkybank.OpenAI do
       Enum.map(monthly_expenses, fn expense ->
         %{
           name: expense.description,
+          alias: expense.expense_alias,
           category: expense.category.name,
           amount: expense.amount,
           date: expense.date,
@@ -96,11 +97,11 @@ defmodule Porkybank.OpenAI do
 
   defp create_system_prompt() do
     """
-      Given a list of "New transactions" and a list of "Monthly recurring expenses", identify which of the "New transactions" match any of the "Monthly recurring expenses". Respond with only the matching new transactions in JSON format. The match should be based on similar names and amounts, allowing for small variations. Sometimes "New transactions" can be half the amount of the recurring expense because they are paid bi-monthly. In this case, the system should still match them.
+    Given a list of "New transactions" and a list of "Monthly recurring expenses", identify which of the "New transactions" match any of the "Monthly recurring expenses". Respond with only the matching new transactions in JSON format. The match should be based on similar names, amounts, and the optional "expense_alias" field, allowing for small variations. Sometimes "New transactions" can be half the amount of the recurring expense because they are paid bi-monthly. In this case, the system should still match them.
 
-      Include the full details of the matching "New transaction" in the response, do not include the monthly recurring expense details besides the matched_expense_id. confidence_score should be determined by you (LOW, MED, HIGH).
+    Include the full details of the matching "New transaction" in the response, do not include the monthly recurring expense details besides the matched_expense_id. confidence_score should be determined by you (LOW, MED, HIGH).
 
-      {"matching_transactions: [{"name": transaction_name, "amount": transaction_amount, "date": transaction_date, "transaction_id": transaction_id, "matched_expense_id": expense_id, "confidence_score": confidence_score}]}
+    {"matching_transactions": [{"name": transaction_name, "amount": transaction_amount, "date": transaction_date, "transaction_id": transaction_id, "matched_expense_id": expense_id, "confidence_score": confidence_score}]}
     """
   end
 end
