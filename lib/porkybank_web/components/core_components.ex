@@ -911,6 +911,10 @@ defmodule PorkybankWeb.CoreComponents do
   defp badge_color_class("dark_green"), do: "bg-green-900 text-green-100 ring-green-300/10"
   defp badge_color_class("slate"), do: "bg-slate-900 text-slate-100 ring-slate-600"
   defp badge_color_class("pink"), do: "bg-pink-50 text-pink-700 ring-pink-700/10"
+
+  defp badge_color_class("ai"),
+    do: "bg-gradient-to-br from-pink-50 via-pink-400 to-blue-500 text-white ring-pink-400/10"
+
   defp badge_color_class(_), do: "bg-zinc-50 text-zinc-700 ring-zinc-700/10"
 
   def spinner(assigns) do

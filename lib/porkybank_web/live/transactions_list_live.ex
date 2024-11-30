@@ -86,12 +86,13 @@ defmodule PorkybankWeb.TransactionsLive do
               </:title>
               <:subtitle>
                 <%= transaction.date %>
+                <% ai_ignored? = ignored_reason(transaction, @ignored_transactions) == "AI matched" %>
                 <.badge
                   :if={is_ignored?(transaction, @ignored_transactions_ids)}
-                  color="red"
+                  color={if ai_ignored?, do: "ai", else: "red"}
                   size={:xs}
                 >
-                  <%= if ignored_reason(transaction, @ignored_transactions) == "AI matched" do %>
+                  <%= if ai_ignored? do %>
                     🤖 Ignored
                   <% else %>
                     Ignored
