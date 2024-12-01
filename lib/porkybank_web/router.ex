@@ -75,6 +75,7 @@ defmodule PorkybankWeb.Router do
   scope "/admin", PorkybankWeb do
     pipe_through [:browser, :require_admin]
 
+    live "/users", Admin.AdminUsersLive
     live "/categories", Admin.AdminCategoryLive
     live "/custom-pfcs", Admin.AdminCustomPfcLive
     live "/plaid-accounts", Admin.AdminPlaidAccountLive

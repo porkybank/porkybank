@@ -7,12 +7,14 @@
   <.header>Admin panel</.header>
   <div class="grid grid-cols-4 gap-4">
     <div class="col-span-1 flex flex-col gap-2">
+      <.link navigate={~p"/admin/users"}>
       <.button
         class="sm:min-w-[10rem]"
         variant={if @page_selected != :users, do: :shadow, else: :primary}
       >
         Users
       </.button>
+      </.link>
       <.link navigate={~p"/admin/categories"}>
         <.button
           class="sm:min-w-[10rem]"
