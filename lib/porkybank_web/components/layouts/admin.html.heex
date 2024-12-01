@@ -37,6 +37,14 @@
           Plaid Accounts
         </.button>
       </.link>
+      <.link navigate={~p"/admin/ignored-transactions"}>
+        <.button
+          class="sm:min-w-[10rem]"
+          variant={if @page_selected != :ignored_transactions, do: :shadow, else: :primary}
+        >
+          Ignored Transactions
+        </.button>
+      </.link>
       <.link class="text-sm underline text-blue-600 font-semibold" navigate={~p"/overview"}>
         <.icon class="w-3 h-3" name="hero-arrow-left" />Back to site
       </.link>
