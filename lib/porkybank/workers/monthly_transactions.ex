@@ -28,6 +28,7 @@ defmodule Porkybank.Workers.MonthlyTransactionsWorker do
                  amount: &1.amount,
                  category_id: &1.category_id,
                  description: &1.description,
+                 expense_alias: &1.expense_alias,
                  date:
                    &1.date
                    |> Timex.shift(months: 1)
