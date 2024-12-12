@@ -13,6 +13,15 @@ defmodule Porkybank.Workers.TransactionFetcher do
   @impl true
   def perform(%{args: %{"user_id" => user_id} = args}) do
     try do
+      # Ensure no duplicate jobs for this user are running or scheduled
+      if has_existing_jobs?(user_id) do
+        Logger.info(
+          "Skipping job creation: user #{user_id} already has a running or scheduled job"
+        )
+
+        :ok
+      end
+
       today = Date.utc_today()
 
       {:ok, first_day_of_month} =
@@ -172,6 +181,16 @@ defmodule Porkybank.Workers.TransactionFetcher do
         :insert
       end
     end
+  end
+
+  def has_existing_jobs?(user_id) do
+    Oban.Job
+    |> where(
+      [j],
+      j.worker == "Porkybank.Workers.TransactionFetcher" and
+        fragment("?->>'user_id' = ?", j.args, ^Integer.to_string(user_id))
+    )
+    |> Porkybank.Repo.exists?()
   end
 
   def maybe_ignore_transaction(%{
