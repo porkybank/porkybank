@@ -57,8 +57,8 @@ defmodule Porkybank.MixProject do
       {:tesla, "~> 1.8"},
       {:number, "~> 1.0.1"},
       {:inflex, "~> 2.0.0"},
-      {:live_view_native, "~> 0.2.0"},
-      {:live_view_native_swiftui, "~> 0.2.0"},
+      {:live_view_native, "0.2.0"},
+      {:live_view_native_swiftui, "0.2.0"},
       {:timex, "~> 3.7.11"},
       {:oban, "~> 2.18.3"},
       {:poison, "~> 5.0"}

@@ -190,7 +190,9 @@ defmodule Porkybank.Workers.TransactionFetcher do
     |> where(
       [j],
       j.worker == "Porkybank.Workers.TransactionFetcher" and
-        fragment("?->>'user_id' = ?", j.args, ^Integer.to_string(user_id))
+        fragment("?->>'user_id' = ?", j.args, ^Integer.to_string(user_id)) and
+        j.state in ["available", "scheduled", "executing"] and
+        j.id != fragment("SELECT id FROM oban_jobs WHERE id = (SELECT pg_backend_pid())")
     )
     |> Porkybank.Repo.exists?()
   end
