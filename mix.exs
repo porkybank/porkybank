@@ -60,7 +60,7 @@ defmodule Porkybank.MixProject do
       {:live_view_native, "~> 0.2.0"},
       {:live_view_native_swiftui, "~> 0.2.0"},
       {:timex, "~> 3.7.11"},
-      {:oban, "~> 2.17.0"},
+      {:oban, "~> 2.18.3"},
       {:poison, "~> 5.0"}
     ]
   end

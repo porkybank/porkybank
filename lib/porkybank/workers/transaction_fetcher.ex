@@ -14,102 +14,104 @@ defmodule Porkybank.Workers.TransactionFetcher do
   def perform(%{args: %{"user_id" => user_id} = args}) do
     try do
       # Ensure no duplicate jobs for this user are running or scheduled
-      if has_existing_jobs?(user_id) do
-        Logger.info(
-          "Skipping job creation: user #{user_id} already has a running or scheduled job"
-        )
+      case has_existing_jobs?(user_id) do
+        true ->
+          Logger.info(
+            "Skipping job creation: user #{user_id} already has a running or scheduled job"
+          )
 
-        :ok
-      end
-
-      today = Date.utc_today()
-
-      {:ok, first_day_of_month} =
-        today |> Date.beginning_of_month() |> NaiveDateTime.new(~T[00:00:00])
-
-      user = Porkybank.Accounts.get_user!(user_id) |> Porkybank.Repo.preload(:plaid_accounts)
-
-      new_transactions = Porkybank.PlaidClient.get_plaid_transactions(user)
-
-      old_transactions_ids =
-        Porkybank.Banking.PlaidTransaction
-        |> where([t], t.user_id == ^user_id and t.inserted_at >= ^first_day_of_month)
-        |> select([t], t.transaction_id)
-        |> Porkybank.Repo.all()
-
-      new_transactions_filtered =
-        Enum.filter(new_transactions, fn new_transaction ->
-          !Enum.member?(old_transactions_ids, new_transaction["transaction_id"])
-        end)
-
-      new_transactions_ids =
-        Enum.reduce(new_transactions_filtered, [], fn tx, acc ->
-          case maybe_confirm_pending_transaction(tx) do
-            :insert ->
-              {:ok, inserted_transaction} =
-                Porkybank.Banking.PlaidTransaction.changeset(
-                  %Porkybank.Banking.PlaidTransaction{},
-                  tx
-                )
-                |> Ecto.Changeset.put_assoc(:user, user)
-                |> Porkybank.Repo.insert()
-
-              if maybe_ignore_transaction(tx) do
-                IgnoredTransactions.create(tx["transaction_id"], user)
-                acc
-              else
-                [inserted_transaction.id | acc]
-              end
-
-            :ignore ->
-              acc
-          end
-        end)
-
-      case Porkybank.OpenAI.match_new_transactions_with_recurring_transactions(
-             user,
-             new_transactions_ids,
-             today
-           ) do
-        %{"matching_transactions" => matching_transactions} ->
-          Enum.each(matching_transactions, fn transaction ->
-            %{
-              "transaction_id" => transaction_id,
-              "confidence_score" => confidence_score,
-              "matched_expense_id" => matched_expense_id
-            } = transaction
-
-            if confidence_score == "HIGH" do
-              IgnoredTransactions.create(transaction_id, user,
-                reason: "AI matched",
-                matched_expense_id: matched_expense_id
-              )
-            end
-          end)
-
-        %{} ->
-          Logger.info("No matching transactions found")
+          :ok
 
         _ ->
-          Logger.error("Error matching new transactions with recurring transactions")
+          today = Date.utc_today()
+
+          {:ok, first_day_of_month} =
+            today |> Date.beginning_of_month() |> NaiveDateTime.new(~T[00:00:00])
+
+          user = Porkybank.Accounts.get_user!(user_id) |> Porkybank.Repo.preload(:plaid_accounts)
+
+          new_transactions = Porkybank.PlaidClient.get_plaid_transactions(user)
+
+          old_transactions_ids =
+            Porkybank.Banking.PlaidTransaction
+            |> where([t], t.user_id == ^user_id and t.inserted_at >= ^first_day_of_month)
+            |> select([t], t.transaction_id)
+            |> Porkybank.Repo.all()
+
+          new_transactions_filtered =
+            Enum.filter(new_transactions, fn new_transaction ->
+              !Enum.member?(old_transactions_ids, new_transaction["transaction_id"])
+            end)
+
+          new_transactions_ids =
+            Enum.reduce(new_transactions_filtered, [], fn tx, acc ->
+              case maybe_confirm_pending_transaction(tx) do
+                :insert ->
+                  {:ok, inserted_transaction} =
+                    Porkybank.Banking.PlaidTransaction.changeset(
+                      %Porkybank.Banking.PlaidTransaction{},
+                      tx
+                    )
+                    |> Ecto.Changeset.put_assoc(:user, user)
+                    |> Porkybank.Repo.insert()
+
+                  if maybe_ignore_transaction(tx) do
+                    IgnoredTransactions.create(tx["transaction_id"], user)
+                    acc
+                  else
+                    [inserted_transaction.id | acc]
+                  end
+
+                :ignore ->
+                  acc
+              end
+            end)
+
+          case Porkybank.OpenAI.match_new_transactions_with_recurring_transactions(
+                 user,
+                 new_transactions_ids,
+                 today
+               ) do
+            %{"matching_transactions" => matching_transactions} ->
+              Enum.each(matching_transactions, fn transaction ->
+                %{
+                  "transaction_id" => transaction_id,
+                  "confidence_score" => confidence_score,
+                  "matched_expense_id" => matched_expense_id
+                } = transaction
+
+                if confidence_score == "HIGH" do
+                  IgnoredTransactions.create(transaction_id, user,
+                    reason: "AI matched",
+                    matched_expense_id: matched_expense_id
+                  )
+                end
+              end)
+
+            %{} ->
+              Logger.info("No matching transactions found")
+
+            _ ->
+              Logger.error("Error matching new transactions with recurring transactions")
+          end
+
+          Porkybank.Repo.update_all(
+            PlaidAccount |> where(user_id: ^user.id),
+            set: [last_synced_at: NaiveDateTime.utc_now()]
+          )
+
+          PubSub.broadcast(
+            Porkybank.PubSub,
+            "transactions_updated_#{user_id}",
+            {:updated_transactions}
+          )
+
+          args
+          |> new(schedule_in: 20 * 60)
+          |> Oban.insert!()
+
+          :ok
       end
-
-      Porkybank.Repo.update_all(
-        PlaidAccount |> where(user_id: ^user.id),
-        set: [last_synced_at: NaiveDateTime.utc_now()]
-      )
-
-      PubSub.broadcast(
-        Porkybank.PubSub,
-        "transactions_updated_#{user_id}",
-        {:updated_transactions}
-      )
-
-      args
-      |> new(schedule_in: 20 * 60)
-      |> Oban.insert!()
-
-      :ok
     rescue
       error ->
         Logger.error("Error fetching transactions for user #{user_id}: #{inspect(error)}")
