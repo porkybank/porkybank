@@ -54,6 +54,8 @@ defmodule Porkybank.PlaidClient do
            ) do
         {:ok, %{status: 400}} ->
           acc
+        {:ok, %{status: 429}} ->
+          {:error, "Try again later"}
 
         {:ok, %{body: %{"accounts" => accounts}}} ->
           acc ++
