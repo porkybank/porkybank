@@ -67,7 +67,7 @@ config :porkybank, Oban,
   # Define your queues and concurrency
   queues: [default: 5, scheduled: 5],
   plugins: [
-    {Oban.Plugins.Pruner, max_age: 60 * 60 * 24 * 7},
+    {Oban.Plugins.Pruner, max_age: 60 * 60},
     {Oban.Plugins.Cron,
      crontab: [
        {"@monthly", Porkybank.Workers.MonthlyTransactionsWorker}
