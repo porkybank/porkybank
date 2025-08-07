@@ -493,15 +493,24 @@ defmodule PorkybankWeb.UserSettingsLive do
   end
 
   def handle_event("resync", _params, socket) do
-    Porkybank.Workers.TransactionFetcher.resync(socket.assigns.current_user.id)
+    case Porkybank.Workers.TransactionFetcher.resync(socket.assigns.current_user.id) do
+      {:ok, _job} ->
+        {:noreply, put_flash(socket, :info, "Bank accounts resyncing.")}
 
-    {:noreply, put_flash(socket, :info, "Bank accounts resyncing.")}
-  end
+      {:error, changeset} ->
+        error_msg =
+          case changeset.errors do
+            [] ->
+              "Failed to start resync process."
 
-  def handle_event("resync_all_users", _params, socket) do
-    Porkybank.Workers.TransactionFetcher.resync_all_users()
+            errors ->
+              errors
+              |> Enum.map(fn {field, {msg, _}} -> "#{field}: #{msg}" end)
+              |> Enum.join(", ")
+          end
 
-    {:noreply, put_flash(socket, :info, "All bank accounts resyncing.")}
+        {:noreply, put_flash(socket, :error, "Resync failed: #{error_msg}")}
+    end
   end
 
   def handle_event("delete", %{"id" => id}, socket) do

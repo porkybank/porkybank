@@ -47,19 +47,28 @@ defmodule Porkybank.Workers.TransactionFetcher do
             Enum.reduce(new_transactions_filtered, [], fn tx, acc ->
               case maybe_confirm_pending_transaction(tx) do
                 :insert ->
-                  {:ok, inserted_transaction} =
-                    Porkybank.Banking.PlaidTransaction.changeset(
-                      %Porkybank.Banking.PlaidTransaction{},
-                      tx
-                    )
-                    |> Ecto.Changeset.put_assoc(:user, user)
-                    |> Porkybank.Repo.insert()
+                  case Porkybank.Banking.PlaidTransaction.changeset(
+                         %Porkybank.Banking.PlaidTransaction{},
+                         tx
+                       )
+                       |> Ecto.Changeset.put_assoc(:user, user)
+                       |> Porkybank.Repo.insert() do
+                    {:ok, inserted_transaction} ->
+                      if maybe_ignore_transaction(tx) do
+                        IgnoredTransactions.create(tx["transaction_id"], user)
+                        acc
+                      else
+                        [inserted_transaction.id | acc]
+                      end
 
-                  if maybe_ignore_transaction(tx) do
-                    IgnoredTransactions.create(tx["transaction_id"], user)
-                    acc
-                  else
-                    [inserted_transaction.id | acc]
+                    {:error,
+                     %Ecto.Changeset{errors: [transaction_id: {"has already been taken", _}]}} ->
+                      Logger.info("Duplicate transaction skipped: #{tx["transaction_id"]}")
+                      acc
+
+                    {:error, changeset} ->
+                      Logger.error("Transaction insert failed: #{inspect(changeset.errors)}")
+                      acc
                   end
 
                 :ignore ->

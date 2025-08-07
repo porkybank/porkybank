@@ -84,6 +84,7 @@ defmodule Porkybank.Banking.PlaidTransaction do
       :transaction_id,
       :transaction_type
     ])
+    |> unique_constraint(:transaction_id)
   end
 
   def manual_changeset(transaction, attrs) do
