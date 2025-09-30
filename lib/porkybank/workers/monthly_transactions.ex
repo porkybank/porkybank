@@ -3,14 +3,24 @@ defmodule Porkybank.Workers.MonthlyTransactionsWorker do
   use Oban.Worker, queue: :scheduled, max_attempts: 3
 
   import Ecto.Query
-
   alias Porkybank.Repo
 
+  # Handle both cases: with target_date and without
+  def perform(%{args: %{"target_date" => target_date_string}}) do
+    target_date = Date.from_iso8601!(target_date_string)
+    copy_expenses_to_month(target_date)
+  end
+
   def perform(_args) do
+    # Default behavior for cron job - copy to current month
     today = Date.utc_today()
-    last_month = Timex.shift(today, months: -1)
-    prev_month_beginning = last_month |> Date.beginning_of_month()
-    prev_month_end = last_month |> Date.end_of_month()
+    copy_expenses_to_month(today)
+  end
+
+  defp copy_expenses_to_month(target_date) do
+    previous_month = Timex.shift(target_date, months: -1)
+    prev_month_beginning = previous_month |> Date.beginning_of_month()
+    prev_month_end = previous_month |> Date.end_of_month()
 
     expenses =
       Repo.all(
@@ -29,10 +39,7 @@ defmodule Porkybank.Workers.MonthlyTransactionsWorker do
                  category_id: &1.category_id,
                  description: &1.description,
                  expense_alias: &1.expense_alias,
-                 date:
-                   &1.date
-                   |> Timex.shift(months: 1)
-                   |> Timex.to_date(),
+                 date: target_date |> Date.beginning_of_month(),
                  user_id: &1.user_id,
                  inserted_at:
                    Timex.now() |> Timex.to_naive_datetime() |> NaiveDateTime.truncate(:second),

@@ -3,6 +3,9 @@ defmodule PorkybankWeb.OverviewLive do
   use PorkybankWeb, :live_view
   use PorkybankWeb.Styles.CoreStyles
 
+  import Ecto.Query
+  alias Oban
+
   @impl true
   def render(%{format: :swiftui} = assigns) do
     ~SWIFTUI"""
@@ -408,6 +411,9 @@ defmodule PorkybankWeb.OverviewLive do
     saved_income = Porkybank.Incomes.get_income(socket.assigns.current_user)
     category = %Porkybank.Banking.Category{}
 
+    # Check if we need to trigger monthly transactions for the requested month
+    maybe_trigger_monthly_transactions(socket.assigns.current_user, params["date"])
+
     {:noreply,
      assign(socket, %{
        page: "overview",
@@ -563,4 +569,39 @@ defmodule PorkybankWeb.OverviewLive do
         Integer.to_string(number) <> "th"
     end
   end
+
+  defp maybe_trigger_monthly_transactions(user, date_string) when is_binary(date_string) do
+    IO.inspect("Triggering monthly transactions for user #{user.id}, date: #{date_string}")
+
+    target_date = Date.from_iso8601!(date_string)
+    first_day_of_month = Porkybank.Utils.get_first_day_of_month(target_date)
+    last_day_of_month = Porkybank.Utils.get_last_day_of_month(target_date)
+
+    # Check if expenses already exist for this month
+    query =
+      from e in Porkybank.Banking.Expense,
+        where:
+          e.user_id == ^user.id and e.date >= ^first_day_of_month and e.date <= ^last_day_of_month
+
+    existing_expenses = Porkybank.Repo.exists?(query)
+    IO.inspect("Existing expenses for this month: #{existing_expenses}")
+
+    # If no expenses exist for this month, trigger the monthly transactions job
+    if not existing_expenses do
+      IO.inspect("Triggering job!")
+
+      result =
+        Oban.insert(
+          Porkybank.Workers.MonthlyTransactionsWorker.new(%{
+            "target_date" => Date.to_iso8601(target_date)
+          })
+        )
+
+      IO.inspect("Job result: #{inspect(result)}")
+    else
+      IO.inspect("Expenses already exist, not triggering job")
+    end
+  end
+
+  defp maybe_trigger_monthly_transactions(_user, _), do: :ok
 end
