@@ -138,6 +138,15 @@ defmodule PorkybankWeb.TransactionFormComponent do
      )}
   end
 
+  def handle_event("delete_from_db", _params, socket) do
+    Repo.delete!(socket.assigns.transaction)
+
+    {:noreply,
+     push_patch(socket,
+       to: ~p"/transactions?#{PorkybankWeb.Utils.get_url_params(%{date: socket.assigns.date})}"
+     )}
+  end
+
   def handle_event("select_category", %{"id" => name}, socket) do
     changeset =
       Ecto.Changeset.put_change(socket.assigns.changeset, :personal_finance_category, %{
