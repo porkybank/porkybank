@@ -78,9 +78,11 @@ defmodule Porkybank.Workers.TransactionFetcher do
 
           Logger.info("New transaction IDs to match: #{inspect(new_transactions_ids)}")
 
+          ai_ids = if PorkybankWeb.UserAuth.is_admin?(user), do: new_transactions_ids, else: []
+
           case Porkybank.OpenAI.match_new_transactions_with_recurring_transactions(
                  user,
-                 new_transactions_ids,
+                 ai_ids,
                  today
                ) do
             %{"matching_transactions" => matching_transactions} ->

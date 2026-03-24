@@ -94,6 +94,12 @@ defmodule PorkybankWeb.UserSettingsLive do
           </.row>
         </.rows>
       </div>
+      <div :if={!PorkybankWeb.UserAuth.is_admin?(@current_user)}>
+        <div class="pt-8">
+          <.label>AI Review</.label>
+          <p class="mt-2 text-sm text-zinc-400">AI transaction review is not enabled for this account.</p>
+        </div>
+      </div>
       <div>
         <.simple_form for={@currency_form} id="currency_form" phx-change="update_currency">
           <.input
