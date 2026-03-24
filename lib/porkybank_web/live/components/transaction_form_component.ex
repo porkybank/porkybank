@@ -100,7 +100,19 @@ defmodule PorkybankWeb.TransactionFormComponent do
             </.dropdown_menu>
           </div>
         </div>
-        <.button phx-disable-with="Saving..." type="submit">Save</.button>
+        <div class="flex justify-between items-center">
+          <.button phx-disable-with="Saving..." type="submit">Save</.button>
+          <.button
+            :if={@action == :edit and not @transaction.is_manual}
+            type="button"
+            variant={:shadow}
+            phx-click="delete_from_db"
+            phx-target={@myself}
+            data-confirm="Delete this transaction? It will be re-fetched on next resync."
+          >
+            <.icon name="hero-trash" class="text-red-500" />
+          </.button>
+        </div>
       </.simple_form>
     </div>
     """
