@@ -76,6 +76,8 @@ defmodule Porkybank.Workers.TransactionFetcher do
               end
             end)
 
+          Logger.info("New transaction IDs to match: #{inspect(new_transactions_ids)}")
+
           case Porkybank.OpenAI.match_new_transactions_with_recurring_transactions(
                  user,
                  new_transactions_ids,
