@@ -180,7 +180,7 @@ defmodule PorkybankWeb.OverviewLive do
             </div>
           </div>
           <div class="mt-3">
-            <.row_header>Spending</.row_header>
+            <.row_header>Forecast</.row_header>
             <.rows>
               <.row>
                 <:title>Income</:title>
@@ -198,6 +198,28 @@ defmodule PorkybankWeb.OverviewLive do
                 </:value>
               </.row>
               <.row>
+                <:title>Allowance</:title>
+                <:value>
+                  <%= Number.Currency.number_to_currency(Decimal.sub(@income, @monthly_expenses),
+                    unit: @current_user.unit
+                  ) %>
+                </:value>
+              </.row>
+              <.row>
+                <:title>Estimated Daily Limit</:title>
+                <:value>
+                  <%= Number.Currency.number_to_currency(
+                    Decimal.div(Decimal.sub(@income, @monthly_expenses), @days_in_month),
+                    unit: @current_user.unit
+                  ) %>
+                </:value>
+              </.row>
+            </.rows>
+          </div>
+          <div class="mt-3">
+            <.row_header>Spending</.row_header>
+            <.rows>
+              <.row>
                 <:title>Total Spent</:title>
                 <:value>
                   <.link
@@ -214,18 +236,10 @@ defmodule PorkybankWeb.OverviewLive do
                 </:value>
               </.row>
               <.row>
-                <:title>Allowance</:title>
-                <:value>
-                  <%= Number.Currency.number_to_currency(Decimal.sub(@income, @monthly_expenses),
-                    unit: @current_user.unit
-                  ) %>
-                </:value>
-              </.row>
-              <.row>
-                <:title>Estimated Daily Limit</:title>
+                <:title>Avg per day</:title>
                 <:value>
                   <%= Number.Currency.number_to_currency(
-                    Decimal.div(Decimal.sub(@income, @monthly_expenses), @days_in_month),
+                    Decimal.div(Decimal.from_float(@total_spent), max(@today.day, 1)),
                     unit: @current_user.unit
                   ) %>
                 </:value>
