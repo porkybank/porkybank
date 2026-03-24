@@ -94,10 +94,11 @@ defmodule Porkybank.Workers.TransactionFetcher do
                 } = transaction
 
                 if confidence_score == "HIGH" do
-                  IgnoredTransactions.create(transaction_id, user,
+                  result = IgnoredTransactions.create(transaction_id, user,
                     reason: "AI matched",
                     matched_expense_id: matched_expense_id
                   )
+                  Logger.info("AI ignore result for #{transaction_id}: #{inspect(result)}")
                 end
               end)
 
