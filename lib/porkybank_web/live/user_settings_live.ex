@@ -95,6 +95,32 @@ defmodule PorkybankWeb.UserSettingsLive do
         </.rows>
       </div>
       <div>
+        <div class="pt-8">
+          <.label>Yearly Subscriptions</.label>
+          <div class="mt-4">
+            <%= if @has_enough_history do %>
+              <%= if @yearly_subscriptions == [] do %>
+                <div class="text-sm text-zinc-400">No yearly recurring charges detected.</div>
+              <% else %>
+                <.rows>
+                  <.row :for={sub <- @yearly_subscriptions}>
+                    <:title><%= sub.name %></:title>
+                    <:subtitle>Last charged: <%= sub.last_charged %></:subtitle>
+                    <:value>
+                      <%= Number.Currency.number_to_currency(sub.amount, unit: @current_user.unit) %>
+                    </:value>
+                  </.row>
+                </.rows>
+              <% end %>
+            <% else %>
+              <div class="text-sm text-zinc-400">
+                Not enough transaction history. Check back after 13 months of data.
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+      <div>
         <.simple_form for={@currency_form} id="currency_form" phx-change="update_currency">
           <.input
             field={@currency_form[:currency]}
@@ -346,6 +372,7 @@ defmodule PorkybankWeb.UserSettingsLive do
       |> put_categories()
       |> put_link_token()
       |> put_plaid_accounts()
+      |> put_subscription_history()
       |> apply_action(socket.assigns.live_action, params)
 
     {:ok, socket}
@@ -560,6 +587,66 @@ defmodule PorkybankWeb.UserSettingsLive do
       accounts ->
         assign(socket, :plaid_accounts, accounts)
     end
+  end
+
+  defp put_subscription_history(socket) do
+    user_id = socket.assigns.current_user.id
+    thirteen_months_ago = Date.add(Date.utc_today(), -396)
+
+    oldest_tx =
+      Repo.one(
+        from t in Porkybank.Banking.PlaidTransaction,
+          where: t.user_id == ^user_id,
+          select: min(t.date),
+          limit: 1
+      )
+
+    has_enough_history =
+      case oldest_tx do
+        nil -> false
+        date_str -> Date.compare(Date.from_iso8601!(date_str), thirteen_months_ago) == :lt
+      end
+
+    yearly_subscriptions =
+      if has_enough_history do
+        find_yearly_subscriptions(user_id)
+      else
+        []
+      end
+
+    socket
+    |> assign(:has_enough_history, has_enough_history)
+    |> assign(:yearly_subscriptions, yearly_subscriptions)
+  end
+
+  defp find_yearly_subscriptions(user_id) do
+    transactions =
+      Repo.all(
+        from t in Porkybank.Banking.PlaidTransaction,
+          where: t.user_id == ^user_id and not t.pending,
+          select: %{name: t.merchant_name, amount: t.amount, date: t.date}
+      )
+
+    transactions
+    |> Enum.group_by(&(&1.name || "Unknown"))
+    |> Enum.filter(fn {_name, txs} -> length(txs) >= 2 end)
+    |> Enum.filter(fn {_name, txs} -> has_yearly_pattern?(txs) end)
+    |> Enum.map(fn {name, txs} ->
+      latest = Enum.max_by(txs, & &1.date)
+      %{name: name, amount: latest.amount, last_charged: latest.date}
+    end)
+    |> Enum.sort_by(& &1.name)
+  end
+
+  defp has_yearly_pattern?(txs) do
+    dates = Enum.map(txs, &Date.from_iso8601!(&1.date))
+
+    Enum.any?(dates, fn d1 ->
+      Enum.any?(dates, fn d2 ->
+        diff = abs(Date.diff(d1, d2))
+        diff >= 320 and diff <= 410
+      end)
+    end)
   end
 
   defp put_categories(socket) do
