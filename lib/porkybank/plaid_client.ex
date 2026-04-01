@@ -15,6 +15,14 @@ defmodule Porkybank.PlaidClient do
     }
   end
 
+  defp webhook_url do
+    endpoint = Application.get_env(:porkybank, PorkybankWeb.Endpoint)
+    url_config = Keyword.get(endpoint, :url, [])
+    host = Keyword.get(url_config, :host, "localhost")
+    scheme = Keyword.get(url_config, :scheme, "https")
+    "#{scheme}://#{host}/api/plaid/webhook"
+  end
+
   def get_plaid_transactions(%Porkybank.Accounts.User{} = user, opts \\ []) do
     access_tokens = get_access_tokens(user)
     today = Keyword.get(opts, :date) || Date.utc_today()
@@ -115,6 +123,14 @@ defmodule Porkybank.PlaidClient do
     calculate_totals(transactions, ignored_transactions, today)
   end
 
+  def update_webhook(access_token) do
+    post(
+      "/item/webhook/update",
+      Map.merge(base_request(), %{access_token: access_token, webhook: webhook_url()}),
+      headers: [{"content-type", "application/json"}]
+    )
+  end
+
   def get_access_token(public_token) do
     request_body = Map.merge(base_request(), %{public_token: public_token})
 
@@ -138,6 +154,7 @@ defmodule Porkybank.PlaidClient do
         ],
         language: "en",
         products: ["transactions"],
+        webhook: webhook_url(),
         user: %{
           client_user_id: Integer.to_string(user.id),
           email: user.email

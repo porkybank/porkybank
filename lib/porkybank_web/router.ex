@@ -82,10 +82,11 @@ defmodule PorkybankWeb.Router do
     live "/ignored-transactions", Admin.AdminIgnoredTransactionsLive
   end
 
-  # Other scopes may use custom stacks.
-  # scope "/api", PorkybankWeb do
-  #   pipe_through :api
-  # end
+  scope "/api", PorkybankWeb do
+    pipe_through :api
+
+    post "/plaid/webhook", PlaidWebhookController, :receive
+  end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development
   if Application.compile_env(:porkybank, :dev_routes) do
