@@ -137,11 +137,21 @@ defmodule Porkybank.PlaidClient do
     case post("/item/public_token/exchange", request_body,
            headers: [{"content-type", "application/json"}]
          ) do
-      {:ok, %{body: %{"access_token" => access_token}}} ->
-        access_token
+      {:ok, %{body: %{"access_token" => access_token, "item_id" => item_id}}} ->
+        {access_token, item_id}
 
       {:error, %{"error_message" => error_message}} ->
         error_message
+    end
+  end
+
+  def get_item_id(access_token) do
+    case post("/item/get", Map.merge(base_request(), %{access_token: access_token}),
+           headers: [{"content-type", "application/json"}]
+         ) do
+      {:ok, %{body: %{"item" => %{"item_id" => item_id}}}} -> {:ok, item_id}
+      {:ok, %{body: body}} -> {:error, body}
+      {:error, reason} -> {:error, reason}
     end
   end
 

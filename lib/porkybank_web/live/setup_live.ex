@@ -197,11 +197,12 @@ defmodule PorkybankWeb.SetupLive do
         },
         socket
       ) do
-    access_token = PlaidClient.get_access_token(public_token)
+    {access_token, item_id} = PlaidClient.get_access_token(public_token)
 
     PlaidAccount.changeset(%PlaidAccount{}, %{
       account_id: account_id,
       access_token: access_token,
+      item_id: item_id,
       institution_name: institution_name
     })
     |> Ecto.Changeset.put_assoc(:user, socket.assigns.current_user)
