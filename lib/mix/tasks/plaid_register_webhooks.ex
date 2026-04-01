@@ -8,18 +8,18 @@ defmodule Mix.Tasks.Plaid.RegisterWebhooks do
 
     accounts = Porkybank.Repo.all(Porkybank.Banking.PlaidAccount)
 
-    Mix.shell().info("Updating #{length(accounts)} account(s)...")
+    IO.puts("Updating #{length(accounts)} account(s)...")
 
     Enum.each(accounts, fn account ->
       case Porkybank.PlaidClient.update_webhook(account.access_token) do
         {:ok, %{status: 200}} ->
-          Mix.shell().info("  [ok] account_id=#{account.account_id} institution=#{account.institution_name}")
+          IO.puts("  [ok] account_id=#{account.account_id} institution=#{account.institution_name}")
 
         {:ok, %{status: status, body: body}} ->
-          Mix.shell().error("  [fail] account_id=#{account.account_id} status=#{status} body=#{inspect(body)}")
+          IO.puts("  [fail] account_id=#{account.account_id} status=#{status} body=#{inspect(body)}")
 
         {:error, reason} ->
-          Mix.shell().error("  [error] account_id=#{account.account_id} reason=#{inspect(reason)}")
+          IO.puts("  [error] account_id=#{account.account_id} reason=#{inspect(reason)}")
       end
     end)
   end
