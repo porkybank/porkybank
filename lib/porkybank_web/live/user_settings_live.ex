@@ -111,7 +111,7 @@ defmodule PorkybankWeb.UserSettingsLive do
               id={"#{phone.id}"}
               remove_message="Remove this phone number?"
             >
-              <:title><%= phone.number %></:title>
+              <:title><span class="py-1 block"><%= phone.number %></span></:title>
               <:value></:value>
             </.row>
           </.rows>

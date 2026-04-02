@@ -110,7 +110,7 @@ defmodule Porkybank.Workers.TransactionFetcher do
           end
 
           if new_transactions_ids != [] do
-            Porkybank.Notifications.send_daily_limit_sms(user)
+            Porkybank.Notifications.send_daily_limit_sms(user, length(new_transactions_ids))
           end
 
           Porkybank.Repo.update_all(

@@ -3,7 +3,7 @@ defmodule Porkybank.Notifications do
 
   require Logger
 
-  def send_daily_limit_sms(user, today \\ Date.utc_today()) do
+  def send_daily_limit_sms(user, new_tx_count, today \\ Date.utc_today()) do
     phone_numbers =
       Porkybank.Accounts.PhoneNumber
       |> where(user_id: ^user.id)
@@ -14,7 +14,7 @@ defmodule Porkybank.Notifications do
     else
       daily_limit = calculate_daily_limit(user, today)
       formatted = Number.Currency.number_to_currency(daily_limit, unit: user.unit)
-      message = "Porkybank: your daily limit for the rest of today is #{formatted}."
+      message = "Porkybank: #{new_tx_count} new transaction#{if new_tx_count == 1, do: "", else: "s"}. Your daily limit is #{formatted}. porkybank.io"
 
       Enum.each(phone_numbers, fn %{number: number} ->
         Porkybank.TwilioClient.send_sms(number, message)
