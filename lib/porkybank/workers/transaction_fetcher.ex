@@ -109,6 +109,10 @@ defmodule Porkybank.Workers.TransactionFetcher do
               Logger.error("Error matching new transactions with recurring transactions")
           end
 
+          if new_transactions_ids != [] do
+            Porkybank.Notifications.send_daily_limit_sms(user)
+          end
+
           Porkybank.Repo.update_all(
             PlaidAccount |> where(user_id: ^user.id),
             set: [last_synced_at: NaiveDateTime.utc_now()]

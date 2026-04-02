@@ -73,6 +73,11 @@ if config_env() == :prod do
     api_key: System.get_env("OPENAI_API_KEY"),
     organization_key: System.get_env("OPENAI_ORGANIZATION_ID")
 
+  config :porkybank, Porkybank.TwilioClient,
+    account_sid: System.get_env("TWILIO_ACCOUNT_SID"),
+    auth_token: System.get_env("TWILIO_AUTH_TOKEN"),
+    messaging_service_sid: System.get_env("TWILIO_MESSAGING_SERVICE_SID")
+
   # ## SSL Support
   #
   # To get SSL working, you will need to add the `https` key

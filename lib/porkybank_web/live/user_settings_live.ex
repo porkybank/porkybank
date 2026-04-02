@@ -101,6 +101,29 @@ defmodule PorkybankWeb.UserSettingsLive do
         </div>
       </div>
       <div>
+        <div class="pt-8">
+          <.label>SMS Notifications</.label>
+          <p class="mt-1 mb-4 text-sm text-zinc-400">Get a text with your daily limit after new transactions.</p>
+          <.rows>
+            <.row
+              :for={phone <- @phone_numbers}
+              on_remove="delete_phone_number"
+              id={"#{phone.id}"}
+              remove_message="Remove this phone number?"
+            >
+              <:title><%= phone.number %></:title>
+              <:value></:value>
+            </.row>
+          </.rows>
+          <.simple_form for={@phone_form} id="phone_form" phx-submit="add_phone_number" class="mt-4">
+            <.input field={@phone_form[:number]} type="tel" label="Phone number" placeholder="+12125551234" />
+            <:actions>
+              <.button phx-disable-with="Adding...">Add number</.button>
+            </:actions>
+          </.simple_form>
+        </div>
+      </div>
+      <div>
         <.simple_form for={@currency_form} id="currency_form" phx-change="update_currency">
           <.input
             field={@currency_form[:currency]}
@@ -352,6 +375,7 @@ defmodule PorkybankWeb.UserSettingsLive do
       |> put_categories()
       |> put_link_token()
       |> put_plaid_accounts()
+      |> put_phone_numbers()
       |> apply_action(socket.assigns.live_action, params)
 
     {:ok, socket}
@@ -421,6 +445,25 @@ defmodule PorkybankWeb.UserSettingsLive do
       {:error, changeset} ->
         {:noreply, assign(socket, password_form: to_form(changeset))}
     end
+  end
+
+  def handle_event("add_phone_number", %{"phone_number" => params}, socket) do
+    %Porkybank.Accounts.PhoneNumber{}
+    |> Porkybank.Accounts.PhoneNumber.changeset(params)
+    |> Ecto.Changeset.put_assoc(:user, socket.assigns.current_user)
+    |> Repo.insert()
+    |> case do
+      {:ok, _} ->
+        {:noreply, socket |> put_phone_numbers() |> put_flash(:info, "Phone number added.")}
+
+      {:error, changeset} ->
+        {:noreply, assign(socket, phone_form: to_form(changeset))}
+    end
+  end
+
+  def handle_event("delete_phone_number", %{"id" => id}, socket) do
+    Repo.get!(Porkybank.Accounts.PhoneNumber, id) |> Repo.delete()
+    {:noreply, socket |> put_phone_numbers() |> put_flash(:info, "Phone number removed.")}
   end
 
   def handle_event("update_currency", params, socket) do
@@ -554,8 +597,14 @@ defmodule PorkybankWeb.UserSettingsLive do
       {:ok, %{body: %{"link_token" => link_token}}} ->
         assign(socket, :link_token, link_token)
 
+      {:ok, %{body: %{"error_message" => error_message}}} ->
+        assign(socket, :link_error, error_message) |> assign(:link_token, nil)
+
       {:error, %{"error_message" => error_message}} ->
         assign(socket, :link_error, error_message) |> assign(:link_token, nil)
+
+      _ ->
+        assign(socket, :link_token, nil)
     end
   end
 
@@ -577,5 +626,19 @@ defmodule PorkybankWeb.UserSettingsLive do
       )
 
     assign(socket, :categories, Enum.sort_by(categories, & &1.name))
+  end
+
+  defp put_phone_numbers(socket) do
+    phone_numbers =
+      Repo.all(
+        from p in Porkybank.Accounts.PhoneNumber,
+          where: p.user_id == ^socket.assigns.current_user.id
+      )
+
+    phone_form = to_form(Porkybank.Accounts.PhoneNumber.changeset(%Porkybank.Accounts.PhoneNumber{}, %{}))
+
+    socket
+    |> assign(:phone_numbers, phone_numbers)
+    |> assign(:phone_form, phone_form)
   end
 end

@@ -17,6 +17,7 @@ defmodule Porkybank.Accounts.User do
     has_many :incomes, Porkybank.Banking.Income
     has_many :plaid_accounts, Porkybank.Banking.PlaidAccount
     has_many :plaid_transactions, Porkybank.Banking.PlaidTransaction
+    has_many :phone_numbers, Porkybank.Accounts.PhoneNumber
 
     timestamps()
   end
