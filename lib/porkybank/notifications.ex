@@ -14,7 +14,7 @@ defmodule Porkybank.Notifications do
     else
       daily_limit = calculate_daily_limit(user, today)
       formatted = Number.Currency.number_to_currency(daily_limit, unit: user.unit)
-      message = "Porkybank: #{new_tx_count} new transaction#{if new_tx_count == 1, do: "", else: "s"}. Your daily limit is #{formatted}. porkybank.io"
+      message = "Porkybank: #{new_tx_count} new transaction#{if new_tx_count == 1, do: "", else: "s"}. Your daily limit is #{formatted}. https://porkybank.io"
 
       Enum.each(phone_numbers, fn %{number: number} ->
         Porkybank.TwilioClient.send_sms(number, message)

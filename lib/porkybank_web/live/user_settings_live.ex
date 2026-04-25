@@ -117,6 +117,12 @@ defmodule PorkybankWeb.UserSettingsLive do
           </.rows>
           <.simple_form for={@phone_form} id="phone_form" phx-submit="add_phone_number" class="mt-4">
             <.input field={@phone_form[:number]} type="tel" label="Phone number" placeholder="+12125551234" />
+            <div class="flex items-start gap-2 mt-2">
+              <input type="checkbox" id="sms_consent" name="sms_consent" class="mt-1" required />
+              <label for="sms_consent" class="text-sm text-zinc-500">
+                I agree to receive SMS notifications from Porkybank. Reply STOP to unsubscribe.
+              </label>
+            </div>
             <:actions>
               <.button phx-disable-with="Adding...">Add number</.button>
             </:actions>
