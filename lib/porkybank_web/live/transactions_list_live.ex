@@ -221,23 +221,31 @@ defmodule PorkybankWeb.TransactionsLive do
   end
 
   def handle_event("exclude", params, socket) do
-    Porkybank.IgnoredTransactions.create(params["id"], socket.assigns.current_user)
+    user = socket.assigns.current_user
+    Porkybank.IgnoredTransactions.create(params["id"], user)
+    Task.start(fn -> Porkybank.Notifications.send_transaction_modified_sms(user, :ignored) end)
 
     {:noreply, get_transactions(socket) |> push_event("chart-updated", %{})}
   end
 
   def handle_event("include", params, socket) do
-    Porkybank.IgnoredTransactions.delete(params["id"], socket.assigns.current_user)
+    user = socket.assigns.current_user
+    Porkybank.IgnoredTransactions.delete(params["id"], user)
+    Task.start(fn -> Porkybank.Notifications.send_transaction_modified_sms(user, :included) end)
 
     {:noreply, get_transactions(socket) |> push_event("chart-updated", %{})}
   end
 
   def handle_event("swipe_left", %{"id" => id}, socket) do
+    user = socket.assigns.current_user
+
     if id in socket.assigns.ignored_transactions_ids do
-      Porkybank.IgnoredTransactions.delete(id, socket.assigns.current_user)
+      Porkybank.IgnoredTransactions.delete(id, user)
+      Task.start(fn -> Porkybank.Notifications.send_transaction_modified_sms(user, :included) end)
       {:noreply, get_transactions(socket) |> push_event("chart-updated", %{})}
     else
-      Porkybank.IgnoredTransactions.create(id, socket.assigns.current_user)
+      Porkybank.IgnoredTransactions.create(id, user)
+      Task.start(fn -> Porkybank.Notifications.send_transaction_modified_sms(user, :ignored) end)
       {:noreply, get_transactions(socket) |> push_event("chart-updated", %{})}
     end
   end

@@ -3,6 +3,27 @@ defmodule Porkybank.Notifications do
 
   require Logger
 
+  def send_transaction_modified_sms(user, action) when action in [:ignored, :included] do
+    phone_numbers =
+      Porkybank.Accounts.PhoneNumber
+      |> where(user_id: ^user.id)
+      |> Porkybank.Repo.all()
+
+    if phone_numbers == [] do
+      :ok
+    else
+      today = Date.utc_today()
+      daily_limit = calculate_daily_limit(user, today)
+      formatted = Number.Currency.number_to_currency(daily_limit, unit: user.unit)
+      action_text = if action == :ignored, do: "ignored", else: "included"
+      message = "Porkybank: Transaction #{action_text}. Your daily limit is now #{formatted}. https://porkybank.io"
+
+      Enum.each(phone_numbers, fn %{number: number} ->
+        Porkybank.TwilioClient.send_sms(number, message)
+      end)
+    end
+  end
+
   def send_daily_limit_sms(user, new_tx_count, today \\ Date.utc_today()) do
     phone_numbers =
       Porkybank.Accounts.PhoneNumber
