@@ -129,18 +129,23 @@ defmodule PorkybankWeb.OverviewLive do
     <div :if={@transactions_loaded} class="flex flex-col items-center w-full">
       <div class="flex flex-col w-full">
         <div class="flex justify-between mb-6">
-          <div>
+          <% {budget_label, budget_value} =
+            case @budget_view do
+              :tomorrow -> {"Tomorrow's Budget", @daily_budget}
+              _ -> {"Today's Budget", @todays_budget}
+            end %>
+          <div phx-click="toggle_budget_view" class="cursor-pointer select-none">
             <div class={[
               "font-bold",
-              budget_header_color(@todays_budget, @estimated_daily_limit, :web)
+              budget_header_color(budget_value, @estimated_daily_limit, :web)
             ]}>
-              Today's Budget
+              <%= budget_label %>
             </div>
             <div class={[
               "font-bold text-2xl",
-              budget_value_color(@todays_budget, @estimated_daily_limit, :web)
+              budget_value_color(budget_value, @estimated_daily_limit, :web)
             ]}>
-              <%= Number.Currency.number_to_currency(@todays_budget,
+              <%= Number.Currency.number_to_currency(budget_value,
                 unit: @current_user.unit
               ) %>
             </div>
@@ -423,7 +428,8 @@ defmodule PorkybankWeb.OverviewLive do
        saved_income: saved_income,
        date: nil,
        selected_page: :overview,
-       crystal_ball_amount: 0
+       crystal_ball_amount: 0,
+       budget_view: socket.assigns[:budget_view] || :today
      })
      |> put_transactions()}
   end
@@ -445,7 +451,8 @@ defmodule PorkybankWeb.OverviewLive do
        saved_income: saved_income,
        date: params["date"],
        selected_page: :overview,
-       crystal_ball_amount: 0
+       crystal_ball_amount: 0,
+       budget_view: socket.assigns[:budget_view] || :today
      })
      |> put_transactions()}
   end
@@ -487,6 +494,16 @@ defmodule PorkybankWeb.OverviewLive do
        tomorrows_budget: tomorrows_budget,
        days_unspent: days_unspent
      })}
+  end
+
+  def handle_event("toggle_budget_view", _params, socket) do
+    next =
+      case socket.assigns[:budget_view] do
+        :tomorrow -> :today
+        _ -> :tomorrow
+      end
+
+    {:noreply, assign(socket, budget_view: next)}
   end
 
   def handle_event("swipe_left", params, socket) do
@@ -572,6 +589,7 @@ defmodule PorkybankWeb.OverviewLive do
       monthly_expenses: monthly_expenses,
       tomorrows_budget: tomorrows_budget,
       todays_budget: todays_budget,
+      daily_budget: daily_budget,
       estimated_daily_limit: estimated_daily_limit,
       days_remaining: days_remaining,
       days_in_month: days_in_month,
