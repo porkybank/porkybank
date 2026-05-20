@@ -11,9 +11,15 @@ defmodule PorkybankWeb.OverviewLive do
     ~SWIFTUI"""
     <HStack class="px-12 py-12">
       <VStack alignment="leading">
-        <Text class="size-18 bold color-gray pb-1">Daily Budget</Text>
-        <Text class="size-24 bold color-green">
-          <%= Number.Currency.number_to_currency(Decimal.div(@total_remaining, @days_remaining)) %> / day
+        <Text class={[
+          "size-18 bold pb-1",
+          budget_header_color(@todays_budget, @estimated_daily_limit, :swiftui)
+        ]}>Today's Budget</Text>
+        <Text class={[
+          "size-24 bold",
+          budget_value_color(@todays_budget, @estimated_daily_limit, :swiftui)
+        ]}>
+          <%= Number.Currency.number_to_currency(@todays_budget) %>
         </Text>
       </VStack>
       <Spacer />
@@ -124,16 +130,19 @@ defmodule PorkybankWeb.OverviewLive do
       <div class="flex flex-col w-full">
         <div class="flex justify-between mb-6">
           <div>
-            <div class="font-bold text-zinc-400">Daily Budget</div>
-            <% daily_budget =
-              Decimal.div(@total_remaining, @days_remaining) %>
+            <div class={[
+              "font-bold",
+              budget_header_color(@todays_budget, @estimated_daily_limit, :web)
+            ]}>
+              Today's Budget
+            </div>
             <div class={[
               "font-bold text-2xl",
-              if(Decimal.negative?(daily_budget), do: "text-red-600", else: "text-green-600")
+              budget_value_color(@todays_budget, @estimated_daily_limit, :web)
             ]}>
-              <%= Number.Currency.number_to_currency(daily_budget,
+              <%= Number.Currency.number_to_currency(@todays_budget,
                 unit: @current_user.unit
-              ) %> / day
+              ) %>
             </div>
           </div>
         </div>
@@ -513,16 +522,17 @@ defmodule PorkybankWeb.OverviewLive do
     {:ok,
      %{
        total_spent: total_spent,
+       today_spent: today_spent,
        today: today
      }} = PlaidClient.get_transactions(user, date: date)
 
     income = socket.assigns.saved_income.amount || 0
     expenses = Porkybank.Expenses.list_expenses(socket.assigns.current_user, date || today)
 
-    assign(socket, calculate_transactions(income, expenses, total_spent, today))
+    assign(socket, calculate_transactions(income, expenses, total_spent, today_spent, today))
   end
 
-  defp calculate_transactions(income, expenses, total_spent, today) do
+  defp calculate_transactions(income, expenses, total_spent, today_spent, today) do
     monthly_expenses =
       Enum.reduce(expenses, 0, fn expense, total ->
         Decimal.add(expense.amount, total)
@@ -545,18 +555,61 @@ defmodule PorkybankWeb.OverviewLive do
 
     tomorrows_budget = Decimal.div(total_remaining, tomorrow)
 
+    daily_budget = Decimal.div(total_remaining, days_remaining)
+
+    todays_budget =
+      Decimal.sub(daily_budget, Decimal.from_float(today_spent / 1))
+      |> Decimal.max(Decimal.new(0))
+
+    estimated_daily_limit =
+      Decimal.div(Decimal.sub(income, monthly_expenses), days_in_month)
+
     %{
       total_spent: total_spent,
+      today_spent: today_spent,
       transactions_loaded: true,
       total_remaining: total_remaining,
       monthly_expenses: monthly_expenses,
       tomorrows_budget: tomorrows_budget,
+      todays_budget: todays_budget,
+      estimated_daily_limit: estimated_daily_limit,
       days_remaining: days_remaining,
       days_in_month: days_in_month,
       expenses: expenses,
       income: income,
       today: today
     }
+  end
+
+  defp budget_threshold(todays_budget, estimated_daily_limit) do
+    cond do
+      Decimal.compare(estimated_daily_limit, Decimal.new(0)) != :gt -> :ok
+      Decimal.compare(todays_budget, Decimal.div(estimated_daily_limit, 4)) == :lt -> :red
+      Decimal.compare(todays_budget, Decimal.div(estimated_daily_limit, 2)) == :lt -> :yellow
+      true -> :ok
+    end
+  end
+
+  defp budget_header_color(todays_budget, estimated_daily_limit, target) do
+    case {budget_threshold(todays_budget, estimated_daily_limit), target} do
+      {:red, :web} -> "text-red-600"
+      {:yellow, :web} -> "text-yellow-600"
+      {_, :web} -> "text-zinc-400"
+      {:red, :swiftui} -> "color-red"
+      {:yellow, :swiftui} -> "color-yellow"
+      {_, :swiftui} -> "color-gray"
+    end
+  end
+
+  defp budget_value_color(todays_budget, estimated_daily_limit, target) do
+    case {budget_threshold(todays_budget, estimated_daily_limit), target} do
+      {:red, :web} -> "text-red-600"
+      {:yellow, :web} -> "text-yellow-600"
+      {_, :web} -> "text-green-600"
+      {:red, :swiftui} -> "color-red"
+      {:yellow, :swiftui} -> "color-yellow"
+      {_, :swiftui} -> "color-green"
+    end
   end
 
   defp inflect(number) do

@@ -185,12 +185,20 @@ defmodule Porkybank.PlaidClient do
   defp calculate_totals(transactions, ignored_transactions, day) do
     ignored_transactions_ids = Enum.map(ignored_transactions, & &1.transaction_id)
 
-    total_spent =
+    active_transactions =
       transactions
       |> Enum.filter(fn transaction ->
         transaction.transaction_id not in ignored_transactions_ids
       end)
+
+    total_spent =
+      active_transactions
       |> Enum.reduce(0.0, fn transaction, total_spent -> transaction.amount + total_spent end)
+
+    today_spent =
+      active_transactions
+      |> Enum.filter(fn transaction -> transaction.date == day end)
+      |> Enum.reduce(0.0, fn transaction, total -> transaction.amount + total end)
 
     {:ok,
      %{
@@ -198,6 +206,7 @@ defmodule Porkybank.PlaidClient do
        ignored_transactions: ignored_transactions,
        transactions: transactions || [],
        total_spent: total_spent,
+       today_spent: today_spent,
        start_date: Porkybank.Utils.get_first_day_of_month(day),
        end_date: Porkybank.Utils.get_last_day_of_month(day),
        today: day
