@@ -195,9 +195,11 @@ defmodule Porkybank.PlaidClient do
       active_transactions
       |> Enum.reduce(0.0, fn transaction, total_spent -> transaction.amount + total_spent end)
 
+    today_iso = Date.to_iso8601(day)
+
     today_spent =
       active_transactions
-      |> Enum.filter(fn transaction -> transaction.date == day end)
+      |> Enum.filter(fn transaction -> transaction.date == today_iso end)
       |> Enum.reduce(0.0, fn transaction, total -> transaction.amount + total end)
 
     {:ok,
