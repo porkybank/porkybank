@@ -13,10 +13,17 @@ defmodule Porkybank.Notifications do
       :ok
     else
       today = Date.utc_today()
-      daily_limit = calculate_daily_limit(user, today)
-      formatted = Number.Currency.number_to_currency(daily_limit, unit: user.unit)
+      {daily_limit, total_remaining} = calculate_daily_limit(user, today)
       action_text = if action == :ignored, do: "ignored", else: "included"
-      message = "Porkybank: Transaction #{action_text}. Your daily limit is now #{formatted}. https://porkybank.io"
+
+      message =
+        if Decimal.negative?(total_remaining) do
+          formatted = Number.Currency.number_to_currency(Decimal.abs(total_remaining), unit: user.unit)
+          "Porkybank: Transaction #{action_text}. Budget exceeded by #{formatted}. https://porkybank.io"
+        else
+          formatted = Number.Currency.number_to_currency(daily_limit, unit: user.unit)
+          "Porkybank: Transaction #{action_text}. Your daily limit is now #{formatted}. https://porkybank.io"
+        end
 
       Enum.each(phone_numbers, fn %{number: number} ->
         Porkybank.TwilioClient.send_sms(number, message)
@@ -33,9 +40,17 @@ defmodule Porkybank.Notifications do
     if phone_numbers == [] do
       :ok
     else
-      daily_limit = calculate_daily_limit(user, today)
-      formatted = Number.Currency.number_to_currency(daily_limit, unit: user.unit)
-      message = "Porkybank: #{new_tx_count} new transaction#{if new_tx_count == 1, do: "", else: "s"}. Your daily limit is #{formatted}. https://porkybank.io"
+      {daily_limit, total_remaining} = calculate_daily_limit(user, today)
+      tx_text = "#{new_tx_count} new transaction#{if new_tx_count == 1, do: "", else: "s"}"
+
+      message =
+        if Decimal.negative?(total_remaining) do
+          formatted = Number.Currency.number_to_currency(Decimal.abs(total_remaining), unit: user.unit)
+          "Porkybank: #{tx_text}. Budget exceeded by #{formatted}. https://porkybank.io"
+        else
+          formatted = Number.Currency.number_to_currency(daily_limit, unit: user.unit)
+          "Porkybank: #{tx_text}. Your daily limit is #{formatted}. https://porkybank.io"
+        end
 
       Enum.each(phone_numbers, fn %{number: number} ->
         Porkybank.TwilioClient.send_sms(number, message)
@@ -62,6 +77,6 @@ defmodule Porkybank.Notifications do
     days_in_month = Date.days_in_month(today)
     days_remaining = max(1, days_in_month - today.day)
 
-    Decimal.div(total_remaining, days_remaining)
+    {Decimal.div(total_remaining, days_remaining), total_remaining}
   end
 end

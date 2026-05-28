@@ -9,17 +9,23 @@ defmodule PorkybankWeb.OverviewLive do
   @impl true
   def render(%{format: :swiftui} = assigns) do
     ~SWIFTUI"""
+    <% exceeded? = Decimal.negative?(@total_remaining)
+
+    {budget_label, budget_value} =
+      if exceeded?,
+        do: {"Exceeded by", Decimal.abs(@total_remaining)},
+        else: {"Today's Budget", @todays_budget} %>
     <HStack class="px-12 py-12">
       <VStack alignment="leading">
         <Text class={[
           "size-18 bold pb-1",
-          budget_header_color(@todays_budget, @estimated_daily_limit, :swiftui)
-        ]}>Today's Budget</Text>
+          if(exceeded?, do: "color-red", else: budget_header_color(@todays_budget, @estimated_daily_limit, :swiftui))
+        ]}><%= budget_label %></Text>
         <Text class={[
           "size-24 bold",
-          budget_value_color(@todays_budget, @estimated_daily_limit, :swiftui)
+          if(exceeded?, do: "color-red", else: budget_value_color(@todays_budget, @estimated_daily_limit, :swiftui))
         ]}>
-          <%= Number.Currency.number_to_currency(@todays_budget) %>
+          <%= Number.Currency.number_to_currency(budget_value) %>
         </Text>
       </VStack>
       <Spacer />
@@ -109,7 +115,8 @@ defmodule PorkybankWeb.OverviewLive do
             <Text class="bold py-6">Tomorrow's Budget</Text>
           </VStack>
           <Spacer />
-          <Text class="bold py-6"><%= Number.Currency.number_to_currency(@tomorrows_budget) %> / day</Text>
+          <Text :if={exceeded?} class="bold py-6 color-red">Exceeded by <%= Number.Currency.number_to_currency(Decimal.abs(@total_remaining)) %></Text>
+          <Text :if={not exceeded?} class="bold py-6"><%= Number.Currency.number_to_currency(@tomorrows_budget) %> / day</Text>
         </HStack>
       </Grid>
     </VStack>
@@ -129,21 +136,24 @@ defmodule PorkybankWeb.OverviewLive do
     <div :if={@transactions_loaded} class="flex flex-col items-center w-full">
       <div class="flex flex-col w-full">
         <div class="flex justify-between mb-6">
-          <% {budget_label, budget_value} =
-            case @budget_view do
-              :tomorrow -> {"Tomorrow's Budget", @daily_budget}
-              _ -> {"Today's Budget", @todays_budget}
+          <% exceeded? = Decimal.negative?(@total_remaining)
+
+          {budget_label, budget_value} =
+            cond do
+              exceeded? -> {"Exceeded by", Decimal.abs(@total_remaining)}
+              @budget_view == :tomorrow -> {"Tomorrow's Budget", @daily_budget}
+              true -> {"Today's Budget", @todays_budget}
             end %>
           <div phx-click="toggle_budget_view" class="cursor-pointer select-none">
             <div class={[
               "font-bold",
-              budget_header_color(budget_value, @estimated_daily_limit, :web)
+              if(exceeded?, do: "text-red-600", else: budget_header_color(budget_value, @estimated_daily_limit, :web))
             ]}>
               <%= budget_label %>
             </div>
             <div class={[
               "font-bold text-2xl",
-              budget_value_color(budget_value, @estimated_daily_limit, :web)
+              if(exceeded?, do: "text-red-600", else: budget_value_color(budget_value, @estimated_daily_limit, :web))
             ]}>
               <%= Number.Currency.number_to_currency(budget_value,
                 unit: @current_user.unit
@@ -572,10 +582,13 @@ defmodule PorkybankWeb.OverviewLive do
 
     tomorrows_budget = Decimal.div(total_remaining, tomorrow)
 
-    daily_budget = Decimal.div(total_remaining, days_remaining)
+    today_spent_decimal = Decimal.from_float(today_spent / 1)
+
+    daily_budget =
+      Decimal.div(Decimal.add(total_remaining, today_spent_decimal), days_remaining)
 
     todays_budget =
-      Decimal.sub(daily_budget, Decimal.from_float(today_spent / 1))
+      Decimal.sub(daily_budget, today_spent_decimal)
       |> Decimal.max(Decimal.new(0))
 
     estimated_daily_limit =
