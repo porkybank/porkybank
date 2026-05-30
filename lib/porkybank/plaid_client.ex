@@ -120,7 +120,8 @@ defmodule Porkybank.PlaidClient do
         |> Porkybank.Repo.all()
       end
 
-    calculate_totals(transactions, ignored_transactions, today)
+    period_start = Keyword.get(opts, :period_start)
+    calculate_totals(transactions, ignored_transactions, today, period_start)
   end
 
   def update_webhook(access_token) do
@@ -182,7 +183,7 @@ defmodule Porkybank.PlaidClient do
     post("/link/token/create", request_body, headers: [{"content-type", "application/json"}])
   end
 
-  defp calculate_totals(transactions, ignored_transactions, day) do
+  defp calculate_totals(transactions, ignored_transactions, day, period_start \\ nil) do
     ignored_transactions_ids = Enum.map(ignored_transactions, & &1.transaction_id)
 
     active_transactions =
@@ -191,8 +192,11 @@ defmodule Porkybank.PlaidClient do
         transaction.transaction_id not in ignored_transactions_ids
       end)
 
+    period_start_iso = period_start && Date.to_iso8601(period_start)
+
     total_spent =
       active_transactions
+      |> Enum.filter(fn tx -> is_nil(period_start_iso) or tx.date >= period_start_iso end)
       |> Enum.reduce(0.0, fn transaction, total_spent -> transaction.amount + total_spent end)
 
     today_iso = Date.to_iso8601(day)

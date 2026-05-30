@@ -538,6 +538,7 @@ defmodule PorkybankWeb.OverviewLive do
 
   defp put_transactions(socket) do
     user = Porkybank.Repo.preload(socket.assigns.current_user, :plaid_accounts)
+    pay_cycle = socket.assigns.current_user.pay_cycle
 
     date =
       if socket.assigns.date do
@@ -546,33 +547,42 @@ defmodule PorkybankWeb.OverviewLive do
         nil
       end
 
+    reference_date = date || Date.utc_today()
+    {period_start, _} = Porkybank.PayCycle.period_for(pay_cycle, reference_date)
+
     {:ok,
      %{
        total_spent: total_spent,
        today_spent: today_spent,
        today: today
-     }} = PlaidClient.get_transactions(user, date: date)
+     }} = PlaidClient.get_transactions(user, date: date, period_start: period_start)
 
     income = socket.assigns.saved_income.amount || 0
     expenses = Porkybank.Expenses.list_expenses(socket.assigns.current_user, date || today)
 
-    assign(socket, calculate_transactions(income, expenses, total_spent, today_spent, today))
+    assign(socket, calculate_transactions(income, expenses, total_spent, today_spent, today, pay_cycle))
   end
 
-  defp calculate_transactions(income, expenses, total_spent, today_spent, today) do
+  defp calculate_transactions(income, expenses, total_spent, today_spent, today, pay_cycle \\ nil) do
     monthly_expenses =
       Enum.reduce(expenses, 0, fn expense, total ->
         Decimal.add(expense.amount, total)
       end)
 
+    {period_start, period_end} = Porkybank.PayCycle.period_for(pay_cycle, today)
+    periods = Porkybank.PayCycle.periods_per_month(pay_cycle)
+
+    period_income = Decimal.div(income, periods)
+    period_expenses = Decimal.div(monthly_expenses, periods)
+
     total_remaining =
       Decimal.sub(
-        income,
-        Decimal.add(monthly_expenses, Decimal.from_float(total_spent))
+        period_income,
+        Decimal.add(period_expenses, Decimal.from_float(total_spent))
       )
 
-    days_in_month = Date.days_in_month(today)
-    days_remaining = max(1, days_in_month - today.day)
+    days_in_period = period_end.day - period_start.day + 1
+    days_remaining = max(1, period_end.day - today.day)
 
     tomorrow =
       case days_remaining - 1 do
@@ -592,7 +602,7 @@ defmodule PorkybankWeb.OverviewLive do
       |> Decimal.max(Decimal.new(0))
 
     estimated_daily_limit =
-      Decimal.div(Decimal.sub(income, monthly_expenses), days_in_month)
+      Decimal.div(Decimal.sub(period_income, period_expenses), days_in_period)
 
     %{
       total_spent: total_spent,
@@ -605,9 +615,9 @@ defmodule PorkybankWeb.OverviewLive do
       daily_budget: daily_budget,
       estimated_daily_limit: estimated_daily_limit,
       days_remaining: days_remaining,
-      days_in_month: days_in_month,
+      days_in_month: days_in_period,
       expenses: expenses,
-      income: income,
+      income: period_income,
       today: today
     }
   end
