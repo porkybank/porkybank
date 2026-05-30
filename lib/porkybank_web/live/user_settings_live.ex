@@ -124,7 +124,18 @@ defmodule PorkybankWeb.UserSettingsLive do
               </label>
             </div>
             <:actions>
-              <.button phx-disable-with="Adding...">Add number</.button>
+              <div class="flex items-center gap-3">
+                <.button phx-disable-with="Adding...">Add number</.button>
+                <.button
+                  :if={@phone_numbers != []}
+                  type="button"
+                  phx-click="send_test_sms"
+                  phx-disable-with="Sending..."
+                  variant={:shadow}
+                >
+                  <.icon name="hero-paper-airplane" class="h-4 w-4" /> Test notification
+                </.button>
+              </div>
             </:actions>
           </.simple_form>
         </div>
@@ -483,6 +494,12 @@ defmodule PorkybankWeb.UserSettingsLive do
       {:error, changeset} ->
         {:noreply, assign(socket, phone_form: to_form(changeset))}
     end
+  end
+
+  def handle_event("send_test_sms", _params, socket) do
+    user = socket.assigns.current_user
+    Task.start(fn -> Porkybank.Notifications.send_daily_limit_sms(user, 0) end)
+    {:noreply, put_flash(socket, :info, "Test notification sent.")}
   end
 
   def handle_event("delete_phone_number", %{"id" => id}, socket) do
