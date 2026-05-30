@@ -73,7 +73,7 @@ defmodule PorkybankWeb.OverviewLive do
           </VStack>
           <Spacer />
           <Text class="bold py-6">
-            <%= Number.Currency.number_to_currency(Decimal.sub(@income, @monthly_expenses)) %>
+            <%= Number.Currency.number_to_currency(Decimal.sub(@income, @period_expenses)) %>
           </Text>
         </HStack>
         <Divider />
@@ -83,9 +83,7 @@ defmodule PorkybankWeb.OverviewLive do
           </VStack>
           <Spacer />
           <Text class="bold py-6">
-            <%= Number.Currency.number_to_currency(
-              Decimal.div(Decimal.sub(@income, @monthly_expenses), @days_in_month)
-            ) %>
+            <%= Number.Currency.number_to_currency(@estimated_daily_limit) %>
           </Text>
         </HStack>
         <Divider />
@@ -224,7 +222,7 @@ defmodule PorkybankWeb.OverviewLive do
               <.row>
                 <:title>Allowance</:title>
                 <:value>
-                  <%= Number.Currency.number_to_currency(Decimal.sub(@income, @monthly_expenses),
+                  <%= Number.Currency.number_to_currency(Decimal.sub(@income, @period_expenses),
                     unit: @current_user.unit
                   ) %>
                 </:value>
@@ -232,8 +230,7 @@ defmodule PorkybankWeb.OverviewLive do
               <.row>
                 <:title>Estimated Daily Limit</:title>
                 <:value>
-                  <%= Number.Currency.number_to_currency(
-                    Decimal.div(Decimal.sub(@income, @monthly_expenses), @days_in_month),
+                  <%= Number.Currency.number_to_currency(@estimated_daily_limit,
                     unit: @current_user.unit
                   ) %>
                 </:value>
@@ -581,8 +578,8 @@ defmodule PorkybankWeb.OverviewLive do
         Decimal.add(period_expenses, Decimal.from_float(total_spent))
       )
 
-    days_in_period = period_end.day - period_start.day + 1
-    days_remaining = max(1, period_end.day - today.day)
+    days_in_period = Date.diff(period_end, period_start) + 1
+    days_remaining = max(1, Date.diff(period_end, today))
 
     tomorrow =
       case days_remaining - 1 do
@@ -610,6 +607,7 @@ defmodule PorkybankWeb.OverviewLive do
       transactions_loaded: true,
       total_remaining: total_remaining,
       monthly_expenses: monthly_expenses,
+      period_expenses: period_expenses,
       tomorrows_budget: tomorrows_budget,
       todays_budget: todays_budget,
       daily_budget: daily_budget,

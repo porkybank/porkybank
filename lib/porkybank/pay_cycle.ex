@@ -3,10 +3,19 @@ defmodule Porkybank.PayCycle do
   def period_for("monthly", today), do: {Date.beginning_of_month(today), Date.end_of_month(today)}
 
   def period_for("semi_monthly", today) do
-    if today.day < 15 do
-      {Date.beginning_of_month(today), %{today | day: 14}}
-    else
-      {%{today | day: 15}, last_working_day(today)}
+    lwd = last_working_day(today)
+
+    cond do
+      today.day < 15 ->
+        {Date.beginning_of_month(today), %{today | day: 14}}
+
+      Date.compare(today, lwd) != :gt ->
+        {%{today | day: 15}, lwd}
+
+      true ->
+        # After last working day (e.g. May 30/31): fresh period starts now, ends 14th of next month
+        next_month = Date.add(Date.end_of_month(today), 1)
+        {today, %{next_month | day: 14}}
     end
   end
 
