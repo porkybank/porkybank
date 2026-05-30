@@ -59,23 +59,33 @@ defmodule Porkybank.Notifications do
   end
 
   defp calculate_daily_limit(user, today) do
-    {:ok, %{total_spent: total_spent}} = Porkybank.PlaidClient.get_transactions(user, date: nil)
+    pay_cycle = user.pay_cycle
+    {period_start, period_end} = Porkybank.PayCycle.period_for(pay_cycle, today)
+    periods = Porkybank.PayCycle.periods_per_month(pay_cycle)
 
-    income = case Porkybank.Incomes.get_income(user) do
-      %{amount: amount} when not is_nil(amount) -> amount
-      _ -> Decimal.new(0)
-    end
+    {:ok, %{total_spent: total_spent}} =
+      Porkybank.PlaidClient.get_transactions(user, date: nil, period_start: period_start)
+
+    income =
+      case Porkybank.Incomes.get_income(user) do
+        %{amount: amount} when not is_nil(amount) -> amount
+        _ -> Decimal.new(0)
+      end
 
     expenses = Porkybank.Expenses.list_expenses(user, today)
 
-    monthly_expenses = Enum.reduce(expenses, Decimal.new(0), fn expense, total ->
-      Decimal.add(expense.amount, total)
-    end)
+    monthly_expenses =
+      Enum.reduce(expenses, Decimal.new(0), fn expense, total ->
+        Decimal.add(expense.amount, total)
+      end)
 
-    total_remaining = Decimal.sub(income, Decimal.add(monthly_expenses, Decimal.from_float(total_spent)))
+    period_income = Decimal.div(income, periods)
+    period_expenses = Decimal.div(monthly_expenses, periods)
 
-    days_in_month = Date.days_in_month(today)
-    days_remaining = max(1, days_in_month - today.day)
+    total_remaining =
+      Decimal.sub(period_income, Decimal.add(period_expenses, Decimal.from_float(total_spent)))
+
+    days_remaining = max(1, Date.diff(period_end, today))
 
     {Decimal.div(total_remaining, days_remaining), total_remaining}
   end
