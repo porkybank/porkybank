@@ -9,6 +9,7 @@ defmodule Porkybank.Accounts.User do
     field :confirmed_at, :naive_datetime
     field :currency, :string, default: "USD"
     field :unit, :string, default: "$", virtual: true
+    field :pay_cycle, :string
 
     field :completed_setup_at, :naive_datetime
     field :opted_out_of_plaid_at, :naive_datetime
@@ -135,6 +136,14 @@ defmodule Porkybank.Accounts.User do
   def currency_changeset(user, attrs) do
     user
     |> cast(attrs, [:currency])
+  end
+
+  @pay_cycles ~w(weekly biweekly semi_monthly monthly)
+
+  def pay_cycle_changeset(user, attrs) do
+    user
+    |> cast(attrs, [:pay_cycle])
+    |> validate_inclusion(:pay_cycle, @pay_cycles)
   end
 
   @doc """

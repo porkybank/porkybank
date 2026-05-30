@@ -130,6 +130,22 @@ defmodule PorkybankWeb.UserSettingsLive do
         </div>
       </div>
       <div>
+        <.simple_form for={@pay_cycle_form} id="pay_cycle_form" phx-change="update_pay_cycle">
+          <.input
+            field={@pay_cycle_form[:pay_cycle]}
+            type="select"
+            label="Pay Cycle"
+            prompt="Select pay cycle"
+            options={[
+              {"Weekly", "weekly"},
+              {"Bi-weekly", "biweekly"},
+              {"Semi-monthly (15th & last working day)", "semi_monthly"},
+              {"Monthly", "monthly"}
+            ]}
+          />
+        </.simple_form>
+      </div>
+      <div>
         <.simple_form for={@currency_form} id="currency_form" phx-change="update_currency">
           <.input
             field={@currency_form[:currency]}
@@ -368,6 +384,7 @@ defmodule PorkybankWeb.UserSettingsLive do
     email_changeset = Accounts.change_user_email(user)
     password_changeset = Accounts.change_user_password(user)
     currency_changeset = Accounts.change_user_currency(user)
+    pay_cycle_changeset = Accounts.change_user_pay_cycle(user)
 
     socket =
       socket
@@ -377,6 +394,7 @@ defmodule PorkybankWeb.UserSettingsLive do
       |> assign(:email_form, to_form(email_changeset))
       |> assign(:password_form, to_form(password_changeset))
       |> assign(:currency_form, to_form(currency_changeset))
+      |> assign(:pay_cycle_form, to_form(pay_cycle_changeset))
       |> assign(:trigger_submit, false)
       |> put_categories()
       |> put_link_token()
@@ -470,6 +488,35 @@ defmodule PorkybankWeb.UserSettingsLive do
   def handle_event("delete_phone_number", %{"id" => id}, socket) do
     Repo.get!(Porkybank.Accounts.PhoneNumber, id) |> Repo.delete()
     {:noreply, socket |> put_phone_numbers() |> put_flash(:info, "Phone number removed.")}
+  end
+
+  def handle_event("update_pay_cycle", %{"user" => user_params}, socket) do
+    user = socket.assigns.current_user
+
+    case Accounts.update_user_pay_cycle(user, user_params) do
+      {:ok, user} ->
+        pay_cycle_form =
+          user
+          |> Accounts.change_user_pay_cycle(user_params)
+          |> to_form()
+
+        label =
+          case user.pay_cycle do
+            "weekly" -> "Weekly"
+            "biweekly" -> "Bi-weekly"
+            "semi_monthly" -> "Semi-monthly"
+            "monthly" -> "Monthly"
+            _ -> user.pay_cycle
+          end
+
+        {:noreply,
+         socket
+         |> assign(pay_cycle_form: pay_cycle_form)
+         |> put_flash(:info, "Pay cycle updated to #{label}.")}
+
+      {:error, changeset} ->
+        {:noreply, assign(socket, pay_cycle_form: to_form(changeset))}
+    end
   end
 
   def handle_event("update_currency", params, socket) do

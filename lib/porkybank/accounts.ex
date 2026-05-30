@@ -233,6 +233,16 @@ defmodule Porkybank.Accounts do
     end
   end
 
+  def change_user_pay_cycle(user, attrs \\ %{}) do
+    User.pay_cycle_changeset(user, attrs)
+  end
+
+  def update_user_pay_cycle(user, attrs) do
+    user
+    |> User.pay_cycle_changeset(attrs)
+    |> Repo.update()
+  end
+
   ## Session
 
   @doc """
