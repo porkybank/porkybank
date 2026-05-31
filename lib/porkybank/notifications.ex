@@ -59,9 +59,7 @@ defmodule Porkybank.Notifications do
   end
 
   defp calculate_daily_limit(user, today) do
-    pay_cycle = user.pay_cycle
-    {period_start, period_end} = Porkybank.PayCycle.period_for(pay_cycle, today)
-    periods = Porkybank.PayCycle.periods_per_month(pay_cycle)
+    {period_start, _} = Porkybank.PayCycle.period_for(user.pay_cycle, today)
 
     {:ok, %{total_spent: total_spent}} =
       Porkybank.PlaidClient.get_transactions(user, date: nil, period_start: period_start)
@@ -79,13 +77,11 @@ defmodule Porkybank.Notifications do
         Decimal.add(expense.amount, total)
       end)
 
-    period_income = Decimal.div(income, periods)
-    period_expenses = Decimal.div(monthly_expenses, periods)
-
     total_remaining =
-      Decimal.sub(period_income, Decimal.add(period_expenses, Decimal.from_float(total_spent)))
+      Decimal.sub(income, Decimal.add(monthly_expenses, Decimal.from_float(total_spent)))
 
-    days_remaining = max(1, Date.diff(period_end, today))
+    days_in_month = Date.days_in_month(today)
+    days_remaining = max(1, days_in_month - today.day)
 
     {Decimal.div(total_remaining, days_remaining), total_remaining}
   end
