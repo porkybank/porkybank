@@ -143,11 +143,21 @@ defmodule PorkybankWeb.OverviewLive do
               true -> {"Today's Budget", @todays_budget}
             end %>
           <div phx-click="toggle_budget_view" class="cursor-pointer select-none">
-            <div class={[
-              "font-bold",
-              if(exceeded?, do: "text-red-600", else: budget_header_color(budget_value, @estimated_daily_limit, :web))
-            ]}>
-              <%= budget_label %>
+            <div class="flex items-center gap-1">
+              <div class={[
+                "font-bold",
+                if(exceeded?, do: "text-red-600", else: budget_header_color(budget_value, @estimated_daily_limit, :web))
+              ]}>
+                <%= budget_label %>
+              </div>
+              <div :if={@pay_cycle} class="relative group" phx-click-away="" onclick="event.stopPropagation()">
+                <.icon name="hero-information-circle" class="h-4 w-4 text-zinc-400 cursor-pointer" />
+                <div class="absolute left-0 top-6 z-10 hidden group-hover:flex flex-col gap-1 bg-zinc-800 text-white text-xs rounded-lg px-3 py-2 w-56 shadow-lg">
+                  <span>Resets in <%= @days_until_reset %> <%= Inflex.inflect("day", @days_until_reset) %></span>
+                  <span><%= Calendar.strftime(@period_start, "%b %-d") %> – <%= Calendar.strftime(@period_end, "%b %-d") %></span>
+                  <span class="text-zinc-400 capitalize"><%= String.replace(@pay_cycle, "_", "-") %> pay cycle</span>
+                </div>
+              </div>
             </div>
             <div class={[
               "font-bold text-2xl",
@@ -560,11 +570,14 @@ defmodule PorkybankWeb.OverviewLive do
     assign(socket, calculate_transactions(income, expenses, total_spent, today_spent, today, pay_cycle))
   end
 
-  defp calculate_transactions(income, expenses, total_spent, today_spent, today, _pay_cycle \\ nil) do
+  defp calculate_transactions(income, expenses, total_spent, today_spent, today, pay_cycle \\ nil) do
     monthly_expenses =
       Enum.reduce(expenses, 0, fn expense, total ->
         Decimal.add(expense.amount, total)
       end)
+
+    {period_start, period_end} = Porkybank.PayCycle.period_for(pay_cycle, today)
+    days_until_reset = max(0, Date.diff(period_end, today))
 
     total_remaining =
       Decimal.sub(income, Decimal.add(monthly_expenses, Decimal.from_float(total_spent)))
@@ -606,7 +619,11 @@ defmodule PorkybankWeb.OverviewLive do
       days_in_month: days_in_month,
       expenses: expenses,
       income: income,
-      today: today
+      today: today,
+      pay_cycle: pay_cycle,
+      period_start: period_start,
+      period_end: period_end,
+      days_until_reset: days_until_reset
     }
   end
 
