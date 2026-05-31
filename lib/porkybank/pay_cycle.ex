@@ -13,9 +13,9 @@ defmodule Porkybank.PayCycle do
         {%{today | day: 15}, lwd}
 
       true ->
-        # After last working day (e.g. May 30/31): fresh period starts now, ends 14th of next month
+        # After last working day (e.g. May 30/31): period starts day after last working day
         next_month = Date.add(Date.end_of_month(today), 1)
-        {today, %{next_month | day: 14}}
+        {Date.add(lwd, 1), %{next_month | day: 14}}
     end
   end
 

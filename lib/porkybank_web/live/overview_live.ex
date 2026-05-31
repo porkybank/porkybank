@@ -573,10 +573,7 @@ defmodule PorkybankWeb.OverviewLive do
     period_expenses = Decimal.div(monthly_expenses, periods)
 
     total_remaining =
-      Decimal.sub(
-        period_income,
-        Decimal.add(period_expenses, Decimal.from_float(total_spent))
-      )
+      Decimal.sub(period_income, Decimal.add(period_expenses, Decimal.from_float(total_spent)))
 
     days_in_period = Date.diff(period_end, period_start) + 1
     days_remaining = max(1, Date.diff(period_end, today))
