@@ -270,7 +270,7 @@ defmodule PorkybankWeb.OverviewLive do
                 <:title>Avg per day</:title>
                 <:value>
                   <%= Number.Currency.number_to_currency(
-                    Decimal.div(Decimal.from_float(@total_spent), max(@today.day, 1)),
+                    Decimal.div(Decimal.from_float(@total_spent), @days_elapsed),
                     unit: @current_user.unit
                   ) %>
                 </:value>
@@ -579,6 +579,7 @@ defmodule PorkybankWeb.OverviewLive do
     {period_start, period_end} = Porkybank.PayCycle.period_for(pay_cycle, today)
     periods = Porkybank.PayCycle.periods_per_month(pay_cycle)
     days_until_reset = max(0, Date.diff(period_end, today))
+    days_elapsed = max(1, Date.diff(today, period_start) + 1)
 
     days_in_month = Date.days_in_month(today)
     days_remaining = max(1, Date.diff(period_end, today))
@@ -629,7 +630,8 @@ defmodule PorkybankWeb.OverviewLive do
       pay_cycle: pay_cycle,
       period_start: period_start,
       period_end: period_end,
-      days_until_reset: days_until_reset
+      days_until_reset: days_until_reset,
+      days_elapsed: days_elapsed
     }
   end
 
