@@ -70,7 +70,8 @@ config :porkybank, Oban,
     {Oban.Plugins.Pruner, max_age: 10 * 60},
     {Oban.Plugins.Cron,
      crontab: [
-       {"@monthly", Porkybank.Workers.MonthlyTransactionsWorker}
+       {"@monthly", Porkybank.Workers.MonthlyTransactionsWorker},
+       {"0 * * * *", Porkybank.Workers.DailySmsWorker}
      ]}
   ]
 

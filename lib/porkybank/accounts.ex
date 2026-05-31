@@ -233,6 +233,12 @@ defmodule Porkybank.Accounts do
     end
   end
 
+  def update_user_sms_settings(user, attrs) do
+    user
+    |> User.sms_settings_changeset(attrs)
+    |> Repo.update()
+  end
+
   def change_user_pay_cycle(user, attrs \\ %{}) do
     User.pay_cycle_changeset(user, attrs)
   end

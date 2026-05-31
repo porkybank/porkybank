@@ -25,6 +25,7 @@ import emojiPicker from "./emojiPicker";
 import swipeLeft from "./swipeLeft";
 import chart from "./chart";
 import token from "./token";
+import timezone from "./timezone";
 
 if (window.location.origin === "https://porkybank.fly.dev") {
   window.location = "https://porkybank.io";
@@ -35,6 +36,7 @@ let Hooks = {
   emojiPicker: emojiPicker,
   token: token(),
   swipeLeft: swipeLeft(),
+  timezone: timezone,
 };
 
 let csrfToken = document

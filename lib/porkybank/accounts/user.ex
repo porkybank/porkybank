@@ -10,6 +10,8 @@ defmodule Porkybank.Accounts.User do
     field :currency, :string, default: "USD"
     field :unit, :string, default: "$", virtual: true
     field :pay_cycle, :string
+    field :daily_sms_enabled, :boolean, default: false
+    field :timezone, :string
 
     field :completed_setup_at, :naive_datetime
     field :opted_out_of_plaid_at, :naive_datetime
@@ -136,6 +138,11 @@ defmodule Porkybank.Accounts.User do
   def currency_changeset(user, attrs) do
     user
     |> cast(attrs, [:currency])
+  end
+
+  def sms_settings_changeset(user, attrs) do
+    user
+    |> cast(attrs, [:daily_sms_enabled, :timezone])
   end
 
   @pay_cycles ~w(weekly biweekly semi_monthly monthly)

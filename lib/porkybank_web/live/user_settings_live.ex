@@ -100,6 +100,7 @@ defmodule PorkybankWeb.UserSettingsLive do
           <p class="mt-2 text-sm text-zinc-400">AI transaction review is not enabled for this account.</p>
         </div>
       </div>
+      <div id="timezone-detector" phx-hook="timezone" phx-update="ignore"></div>
       <div>
         <div class="pt-8">
           <.label>SMS Notifications</.label>
@@ -130,14 +131,36 @@ defmodule PorkybankWeb.UserSettingsLive do
                   :if={@phone_numbers != []}
                   type="button"
                   phx-click="send_test_sms"
-                  phx-disable-with="Sending..."
                   variant={:shadow}
                 >
-                  <.icon name="hero-paper-airplane" class="h-4 w-4" /> Test notification
+                  Test notification
                 </.button>
               </div>
             </:actions>
           </.simple_form>
+          <div :if={@phone_numbers != []} class="mt-6 flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium">Daily morning text</p>
+              <p class="text-xs text-zinc-400">
+                Sends at 8 AM<%= if @current_user.timezone, do: " · #{@current_user.timezone}" %>
+              </p>
+            </div>
+            <button
+              type="button"
+              phx-click="toggle_daily_sms"
+              class={[
+                "relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                if(@current_user.daily_sms_enabled, do: "bg-zinc-900", else: "bg-zinc-200")
+              ]}
+              role="switch"
+              aria-checked={@current_user.daily_sms_enabled}
+            >
+              <span class={[
+                "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                if(@current_user.daily_sms_enabled, do: "translate-x-5", else: "translate-x-0")
+              ]} />
+            </button>
+          </div>
         </div>
       </div>
       <div>
@@ -493,6 +516,28 @@ defmodule PorkybankWeb.UserSettingsLive do
 
       {:error, changeset} ->
         {:noreply, assign(socket, phone_form: to_form(changeset))}
+    end
+  end
+
+  def handle_event("detect_timezone", %{"timezone" => tz}, socket) do
+    user = socket.assigns.current_user
+    if user.timezone != tz do
+      Accounts.update_user_sms_settings(user, %{timezone: tz})
+    end
+    {:noreply, socket}
+  end
+
+  def handle_event("toggle_daily_sms", _params, socket) do
+    user = socket.assigns.current_user
+    new_value = !user.daily_sms_enabled
+
+    case Accounts.update_user_sms_settings(user, %{daily_sms_enabled: new_value}) do
+      {:ok, updated_user} ->
+        label = if new_value, do: "Daily morning texts enabled.", else: "Daily morning texts disabled."
+        {:noreply, socket |> assign(:current_user, updated_user) |> put_flash(:info, label)}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Could not update setting.")}
     end
   end
 
