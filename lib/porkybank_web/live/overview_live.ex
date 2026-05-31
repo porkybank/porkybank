@@ -583,7 +583,7 @@ defmodule PorkybankWeb.OverviewLive do
       Decimal.sub(income, Decimal.add(monthly_expenses, Decimal.from_float(total_spent)))
 
     days_in_month = Date.days_in_month(today)
-    days_remaining = max(1, days_in_month - today.day)
+    days_remaining = max(1, Date.diff(period_end, today))
 
     tomorrow =
       case days_remaining - 1 do
