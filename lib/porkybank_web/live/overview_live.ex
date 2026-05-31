@@ -577,13 +577,18 @@ defmodule PorkybankWeb.OverviewLive do
       end)
 
     {period_start, period_end} = Porkybank.PayCycle.period_for(pay_cycle, today)
+    periods = Porkybank.PayCycle.periods_per_month(pay_cycle)
     days_until_reset = max(0, Date.diff(period_end, today))
-
-    total_remaining =
-      Decimal.sub(income, Decimal.add(monthly_expenses, Decimal.from_float(total_spent)))
 
     days_in_month = Date.days_in_month(today)
     days_remaining = max(1, Date.diff(period_end, today))
+
+    # Period-scaled income/expenses for Today's Budget and Total Remaining
+    period_income = Decimal.div(income, periods)
+    period_expenses = Decimal.div(monthly_expenses, periods)
+
+    total_remaining =
+      Decimal.sub(period_income, Decimal.add(period_expenses, Decimal.from_float(total_spent)))
 
     tomorrow =
       case days_remaining - 1 do
@@ -602,6 +607,7 @@ defmodule PorkybankWeb.OverviewLive do
       Decimal.sub(daily_budget, today_spent_decimal)
       |> Decimal.max(Decimal.new(0))
 
+    # Forecast uses full monthly figures for context
     estimated_daily_limit =
       Decimal.div(Decimal.sub(income, monthly_expenses), days_in_month)
 
