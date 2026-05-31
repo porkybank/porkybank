@@ -543,7 +543,7 @@ defmodule PorkybankWeb.UserSettingsLive do
 
   def handle_event("send_test_sms", _params, socket) do
     user = socket.assigns.current_user
-    Task.start(fn -> Porkybank.Notifications.send_daily_limit_sms(user, 0) end)
+    Task.start(fn -> Porkybank.Notifications.send_morning_sms(user) end)
     {:noreply, put_flash(socket, :info, "Test notification sent.")}
   end
 

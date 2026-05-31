@@ -16,7 +16,7 @@ defmodule Porkybank.Workers.DailySmsWorker do
       user.phone_numbers != [] and morning_in_timezone?(user.timezone)
     end)
     |> Enum.each(fn user ->
-      Porkybank.Notifications.send_daily_limit_sms(user, 0)
+      Porkybank.Notifications.send_morning_sms(user)
     end)
 
     :ok
