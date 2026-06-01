@@ -121,7 +121,23 @@ defmodule Porkybank.PlaidClient do
       end
 
     period_start = Keyword.get(opts, :period_start)
-    calculate_totals(transactions, ignored_transactions, today, period_start)
+
+    # If the period spans a month boundary (e.g. May 30 – Jun 14), also pull
+    # the prior month's transactions that fall within the period.
+    prior_month_transactions =
+      if period_start && Date.to_iso8601(period_start) < first_day_of_month do
+        period_start_iso = Date.to_iso8601(period_start)
+        prev_last_day = Date.add(Date.from_iso8601!(first_day_of_month), -1) |> Date.to_iso8601()
+
+        Porkybank.Banking.PlaidTransaction
+        |> where(user_id: ^user.id)
+        |> where([t], t.date >= ^period_start_iso and t.date <= ^prev_last_day)
+        |> Porkybank.Repo.all()
+      else
+        []
+      end
+
+    calculate_totals(transactions ++ prior_month_transactions, ignored_transactions, today, period_start)
   end
 
   def update_webhook(access_token) do
