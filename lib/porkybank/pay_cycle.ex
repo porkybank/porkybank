@@ -27,6 +27,15 @@ defmodule Porkybank.PayCycle do
   def periods_per_month("semi_monthly"), do: 2
   def periods_per_month(_), do: 1
 
+  # Start of the first pay cycle that "belongs" to this calendar month.
+  # For semi-monthly this is the day after the previous month's last working day.
+  def month_period_start("semi_monthly", date) do
+    prev_month_end = Date.add(Date.beginning_of_month(date), -1)
+    Date.add(last_working_day(prev_month_end), 1)
+  end
+
+  def month_period_start(_, date), do: Date.beginning_of_month(date)
+
   def last_working_day(date) do
     date |> Date.end_of_month() |> step_back_to_weekday()
   end

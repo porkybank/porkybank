@@ -281,8 +281,10 @@ defmodule PorkybankWeb.TransactionsLive do
       end
 
     user = Porkybank.Repo.preload(socket.assigns.current_user, :plaid_accounts)
+    today = date || Date.utc_today()
+    period_start = Porkybank.PayCycle.month_period_start(user.pay_cycle, today)
 
-    case Porkybank.PlaidClient.get_transactions(user, date: date) do
+    case Porkybank.PlaidClient.get_transactions(user, date: date, period_start: period_start) do
       {:ok, transactions} ->
         put_transactions(transactions, socket) |> put_chart_data()
     end

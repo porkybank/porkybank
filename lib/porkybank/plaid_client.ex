@@ -229,7 +229,7 @@ defmodule Porkybank.PlaidClient do
        transactions: transactions || [],
        total_spent: total_spent,
        today_spent: today_spent,
-       start_date: Porkybank.Utils.get_first_day_of_month(day),
+       start_date: if(period_start, do: Date.to_iso8601(period_start), else: Porkybank.Utils.get_first_day_of_month(day)),
        end_date: Porkybank.Utils.get_last_day_of_month(day),
        today: day
      }}
