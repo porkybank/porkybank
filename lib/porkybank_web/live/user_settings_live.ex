@@ -130,7 +130,7 @@ defmodule PorkybankWeb.UserSettingsLive do
                 <.button
                   :if={@phone_numbers != []}
                   type="button"
-                  phx-click="send_test_sms"
+                  phx-click="open_test_sms_modal"
                   variant={:shadow}
                 >
                   Test notification
@@ -382,6 +382,33 @@ defmodule PorkybankWeb.UserSettingsLive do
     </div>
 
     <.modal
+      :if={@show_test_sms_modal}
+      show
+      id="test-sms-modal"
+      on_cancel={JS.push("close_test_sms_modal")}
+    >
+      <.header>Send test notification</.header>
+      <div class="mt-4 flex flex-col gap-3">
+        <button
+          :for={phone <- @phone_numbers}
+          type="button"
+          phx-click="send_test_sms"
+          phx-value-number={phone.number}
+          class={[
+            "flex items-center justify-between w-full rounded-lg border px-4 py-3 text-left transition-colors",
+            if(@selected_test_number == phone.number,
+              do: "border-zinc-900 bg-zinc-50",
+              else: "border-zinc-200 hover:border-zinc-400"
+            )
+          ]}
+        >
+          <span class="font-medium"><%= phone.number %></span>
+          <span :if={@selected_test_number == phone.number} class="text-xs text-zinc-500">Sending…</span>
+        </button>
+      </div>
+    </.modal>
+
+    <.modal
       :if={@live_action == :category}
       show
       size={:md}
@@ -434,6 +461,8 @@ defmodule PorkybankWeb.UserSettingsLive do
       |> put_link_token()
       |> put_plaid_accounts()
       |> put_phone_numbers()
+      |> assign(:show_test_sms_modal, false)
+      |> assign(:selected_test_number, nil)
       |> apply_action(socket.assigns.live_action, params)
 
     {:ok, socket}
@@ -541,10 +570,19 @@ defmodule PorkybankWeb.UserSettingsLive do
     end
   end
 
-  def handle_event("send_test_sms", _params, socket) do
+  def handle_event("open_test_sms_modal", _params, socket) do
+    {:noreply, assign(socket, show_test_sms_modal: true, selected_test_number: nil)}
+  end
+
+  def handle_event("close_test_sms_modal", _params, socket) do
+    {:noreply, assign(socket, show_test_sms_modal: false, selected_test_number: nil)}
+  end
+
+  def handle_event("send_test_sms", %{"number" => number}, socket) do
     user = socket.assigns.current_user
-    Task.start(fn -> Porkybank.Notifications.send_test_sms_notification(user) end)
-    {:noreply, put_flash(socket, :info, "Test notification sent.")}
+    socket = assign(socket, selected_test_number: number)
+    Task.start(fn -> Porkybank.Notifications.send_test_sms_notification(user, number) end)
+    {:noreply, socket |> assign(show_test_sms_modal: false, selected_test_number: nil) |> put_flash(:info, "Test notification sent to #{number}.")}
   end
 
   def handle_event("delete_phone_number", %{"id" => id}, socket) do
