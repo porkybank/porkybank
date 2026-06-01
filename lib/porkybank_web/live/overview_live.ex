@@ -139,7 +139,7 @@ defmodule PorkybankWeb.OverviewLive do
           {budget_label, budget_value} =
             cond do
               exceeded? -> {"Exceeded by", Decimal.abs(@total_remaining)}
-              @budget_view == :tomorrow -> {"Tomorrow's Budget", @daily_budget}
+              @budget_view == :tomorrow -> {"Tomorrow's Budget", @tomorrows_budget}
               true -> {"Today's Budget", @todays_budget}
             end %>
           <div phx-click="toggle_budget_view" class="cursor-pointer select-none">
@@ -150,7 +150,7 @@ defmodule PorkybankWeb.OverviewLive do
               ]}>
                 <%= budget_label %>
               </div>
-              <div :if={@pay_cycle} class="relative group" phx-click-away="" onclick="event.stopPropagation()">
+              <div :if={@pay_cycle} class="relative group" onclick="event.stopPropagation()">
                 <.icon name="hero-information-circle" class="h-4 w-4 text-zinc-400 cursor-pointer" />
                 <div class="absolute left-0 top-6 z-10 hidden group-hover:flex flex-col gap-1 bg-zinc-800 text-white text-xs rounded-lg px-3 py-2 w-56 shadow-lg">
                   <span>Resets in <%= @days_until_reset %> <%= Inflex.inflect("day", @days_until_reset) %></span>
@@ -599,14 +599,7 @@ defmodule PorkybankWeb.OverviewLive do
 
     tomorrows_budget = Decimal.div(total_remaining, tomorrow)
 
-    today_spent_decimal = Decimal.from_float(today_spent / 1)
-
-    daily_budget =
-      Decimal.div(Decimal.add(total_remaining, today_spent_decimal), days_remaining)
-
-    todays_budget =
-      Decimal.sub(daily_budget, today_spent_decimal)
-      |> Decimal.max(Decimal.new(0))
+    todays_budget = Decimal.div(total_remaining, days_remaining)
 
     # Forecast uses full monthly figures for context
     estimated_daily_limit =
@@ -620,7 +613,6 @@ defmodule PorkybankWeb.OverviewLive do
       monthly_expenses: monthly_expenses,
       tomorrows_budget: tomorrows_budget,
       todays_budget: todays_budget,
-      daily_budget: daily_budget,
       estimated_daily_limit: estimated_daily_limit,
       days_remaining: days_remaining,
       days_in_month: days_in_month,

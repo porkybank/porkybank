@@ -7,7 +7,10 @@ defmodule Porkybank.PayCycle do
 
     cond do
       today.day < 15 ->
-        {Date.beginning_of_month(today), %{today | day: 14}}
+        # Period starts the day after the previous month's last working day
+        prev_month_end = Date.add(Date.beginning_of_month(today), -1)
+        prev_lwd = last_working_day(prev_month_end)
+        {Date.add(prev_lwd, 1), %{today | day: 14}}
 
       Date.compare(today, lwd) != :gt ->
         {%{today | day: 15}, lwd}
