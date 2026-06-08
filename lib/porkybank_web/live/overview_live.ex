@@ -609,9 +609,12 @@ defmodule PorkybankWeb.OverviewLive do
       Decimal.sub(period_income, Decimal.add(period_expenses, spent_before_today))
 
     todays_budget =
-      Decimal.sub(
-        Decimal.div(remaining_before_today, days_remaining),
-        Decimal.from_float(today_spent)
+      Decimal.max(
+        Decimal.new(0),
+        Decimal.sub(
+          Decimal.div(remaining_before_today, days_remaining),
+          Decimal.from_float(today_spent)
+        )
       )
 
     # Forecast uses full monthly figures for context
