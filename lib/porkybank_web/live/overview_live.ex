@@ -599,7 +599,20 @@ defmodule PorkybankWeb.OverviewLive do
 
     tomorrows_budget = Decimal.div(total_remaining, tomorrow)
 
-    todays_budget = Decimal.div(total_remaining, days_remaining)
+    # Spending from the period up to (but not including) today is amortized
+    # across the remaining days as a daily allowance. Today's spending is then
+    # subtracted dollar-for-dollar so Today's Budget drops as you spend today.
+    spent_before_today =
+      Decimal.sub(Decimal.from_float(total_spent), Decimal.from_float(today_spent))
+
+    remaining_before_today =
+      Decimal.sub(period_income, Decimal.add(period_expenses, spent_before_today))
+
+    todays_budget =
+      Decimal.sub(
+        Decimal.div(remaining_before_today, days_remaining),
+        Decimal.from_float(today_spent)
+      )
 
     # Forecast uses full monthly figures for context
     estimated_daily_limit =
