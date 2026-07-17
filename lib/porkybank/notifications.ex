@@ -96,7 +96,7 @@ defmodule Porkybank.Notifications do
     {period_start, period_end} = Porkybank.PayCycle.period_for(pay_cycle, today)
     periods = Porkybank.PayCycle.periods_per_month(pay_cycle)
 
-    {:ok, %{total_spent: total_spent}} =
+    {:ok, %{total_spent: total_spent, today_spent: today_spent}} =
       Porkybank.PlaidClient.get_transactions(user, date: nil, period_start: period_start)
 
     income =
@@ -120,6 +120,24 @@ defmodule Porkybank.Notifications do
 
     days_remaining = max(1, Date.diff(period_end, today))
 
-    {Decimal.div(total_remaining, days_remaining), total_remaining}
+    # Mirror Today's Budget from the overview: amortize spending before today
+    # across the remaining days, then subtract today's spending dollar-for-dollar
+    # and floor at 0. This keeps the SMS daily limit in sync with the app.
+    spent_before_today =
+      Decimal.sub(Decimal.from_float(total_spent), Decimal.from_float(today_spent))
+
+    remaining_before_today =
+      Decimal.sub(period_income, Decimal.add(period_expenses, spent_before_today))
+
+    todays_budget =
+      Decimal.max(
+        Decimal.new(0),
+        Decimal.sub(
+          Decimal.div(remaining_before_today, days_remaining),
+          Decimal.from_float(today_spent)
+        )
+      )
+
+    {todays_budget, total_remaining}
   end
 end
